@@ -1,0 +1,16 @@
+{
+  "name": "@nightshift/network",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The Night Shift: forecast rounds, Merkle commitments, scoring, consensus and on-chain publication.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@nightshift/core": "workspace:*",
+    "@nightshift/nfv": "workspace:*",
+    "@nightshift/tape": "workspace:*",
+    "viem": "^2.57.3"
+  }
+}

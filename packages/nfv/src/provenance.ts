@@ -48,6 +48,9 @@ export interface V2Params {
   minVol: number;
   clip: number;
   conformal: Record<V2State, { z05: number; z95: number }>;
+  /** CRPS-optimal Student-t scales (× per-stock gap volatility) for each forecaster and state. */
+  scales?: Record<"anchor" | "echo" | "nfv", Record<V2State, number>>;
+  nu?: number;
   fittedAt: string;
   sample: { gaps: number; rows: number };
 }

@@ -82,6 +82,11 @@ for (const [gapId, rows] of rowsByGap) {
 }
 
 const final = fitV2(all);
+{
+  const per = (mu: (r: V2Row, st: V2State) => number) => Object.fromEntries(V2_STATES.map((st) => [st, Number(scaleFor(all.filter((r) => r.state === st), (r) => mu(r, st)).toFixed(4))])) as Record<V2State, number>;
+  final.scales = { anchor: per(() => 0), echo: per((r) => r.r), nfv: per((r, st) => v2Mu(final.coef[st], r.x)) };
+  final.nu = NU;
+}
 const bp = (x: number) => (x * 1e4).toFixed(1);
 const pc = (x: number) => `${(x * 100).toFixed(1)}%`;
 const lines = ["| Gaps × state | n | CRPS stale | CRPS echo | CRPS NFV-v2 | v2 vs stale | v2 vs echo | MAE stale / echo / v2 | 90% coverage | band width |", "|---|---|---|---|---|---|---|---|---|---|"];
