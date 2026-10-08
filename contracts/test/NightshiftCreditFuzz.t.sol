@@ -45,6 +45,35 @@ contract NightshiftCreditFuzzTest is CreditFixture {
         credit.borrow(1, borrower);
     }
 
+    /// `maxBorrow` is exact at any index and debt level: borrowing it succeeds and leaves no further headroom.
+    function testFuzz_maxBorrowIsExact(uint256 elapsed, uint256 firstBorrow, uint256 collateral, uint16 apr) public {
+        apr = uint16(bound(apr, 0, 10_000));
+        vm.prank(owner);
+        credit.setBorrowRate(apr);
+        collateral = bound(collateral, 1, 1e27);
+        _fund(1e40);
+        _depositCollateral(borrower, nvda, collateral);
+        vm.warp(block.timestamp + bound(elapsed, 0, 3 * 365 days));
+        _post(address(nvda), FAIR, LOWER, UPPER);
+
+        uint256 first = credit.maxBorrow(borrower);
+        firstBorrow = bound(firstBorrow, 0, first);
+        if (firstBorrow > 0) _borrow(borrower, firstBorrow);
+        vm.warp(block.timestamp + bound(elapsed, 0, 1 hours)); // index moves again, report still fresh
+
+        uint256 max = credit.maxBorrow(borrower);
+        if (max > 0) {
+            _borrow(borrower, max);
+            // Same block: the new debt fits the power. (Over time interest may lift debt above it; that only blocks
+            // further borrowing, it does not by itself make the position liquidatable.)
+            assertLe(credit.debtOf(borrower), credit.getAccountData(borrower).borrowPower);
+        }
+        assertEq(credit.maxBorrow(borrower), 0);
+        vm.prank(borrower);
+        vm.expectPartialRevert(NightshiftCredit.InsufficientCollateral.selector);
+        credit.borrow(1, borrower);
+    }
+
     /// Debt never accrues slower than the stated APR, account debt >= the aggregate's share, and a full repay
     /// clears the account and every aggregate exactly.
     function testFuzz_interestRoundsAgainstBorrower(uint256 amount, uint256 elapsed, uint16 apr, uint256 steps) public {

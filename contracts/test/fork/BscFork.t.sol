@@ -74,7 +74,7 @@ contract BscForkTest is Fixtures {
         uint256 sq = uint256(sqrtPriceX96) * uint256(sqrtPriceX96); // < 2^256 for any uint160
         // Both tokens have 18 decimals, so the raw ratio is the human price.
         uint256 price = pool.token0() == NVDAB
-            ? Math.mulDiv(sq, 1e8, 1 << 192) // USDT per NVDAB
+            ? Math.mulDiv(sq, 1e8, 1 << 192)  // USDT per NVDAB
             : Math.mulDiv(1 << 192, 1e8, sq);
         assertGt(price, 1e8, "pool price below $1");
         assertLt(price, 100_000e8, "pool price above $100k");
@@ -133,13 +133,15 @@ contract BscForkTest is Fixtures {
         INightshiftOracle.Report memory sat = _saturdayReport(fair);
         _post(NVDAB, sat);
 
-        // Borrow up to the limit (1 NVDAB * lower * 50%); one wei more is refused.
-        uint256 limit = uint256(sat.lower) * 1e18 * 5000 / (1e8 * 1e4);
-        assertEq(credit.getAccountData(borrower).borrowPower, limit);
+        // Borrow up to the limit (1 NVDAB * lower * 50%); one wei more is refused. Interest has accrued into the
+        // index since deployment, so the exact limit (maxBorrow) sits up to 2 wei under the nominal power.
+        uint256 power = uint256(sat.lower) * 1e18 * 5000 / (1e8 * 1e4);
+        assertEq(credit.getAccountData(borrower).borrowPower, power);
+        uint256 limit = credit.maxBorrow(borrower);
+        assertLe(limit, power);
+        assertGe(limit + 2, power);
         vm.prank(borrower);
-        vm.expectRevert(
-            abi.encodeWithSelector(NightshiftCredit.InsufficientCollateral.selector, borrower, limit + 1, limit)
-        );
+        vm.expectPartialRevert(NightshiftCredit.InsufficientCollateral.selector);
         credit.borrow(limit + 1, borrower);
         vm.prank(borrower);
         credit.borrow(limit, borrower);

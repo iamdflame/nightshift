@@ -212,18 +212,22 @@ contract CreditHandler is CommonBase, StdCheats, StdUtils {
         } catch {}
     }
 
+    /// @dev `maxBorrow` must always be exactly borrowable; any failure is recorded as a violation.
     function borrowMax(uint256 actorSeed) external tracked("borrowMax") {
         address b = borrowers[actorSeed % borrowers.length];
-        NightshiftCredit.AccountData memory d = credit.getAccountData(b);
-        if (d.borrowPower <= d.debt + 1) return;
-        uint256 amount = Math.min(d.borrowPower - d.debt - 1, credit.cash()); // -1 absorbs scaled rounding
+        uint256 amount = credit.maxBorrow(b);
         if (amount == 0) return;
         vm.prank(b);
         try credit.borrow(amount, b) {
             calls["borrowOk"]++;
             _raiseFloors(b);
-        } catch {}
+            if (credit.maxBorrow(b) != 0) ghostMaxBorrowNotExact = true;
+        } catch {
+            ghostMaxBorrowNotExact = true;
+        }
     }
+
+    bool public ghostMaxBorrowNotExact;
 
     function repay(uint256 actorSeed, uint256 amount) external tracked("repay") {
         address b = borrowers[actorSeed % borrowers.length];

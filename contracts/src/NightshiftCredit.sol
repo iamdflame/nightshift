@@ -478,7 +478,7 @@ contract NightshiftCredit is ERC4626, Ownable2Step, Pausable, ReentrancyGuardTra
             if (liquidationValue >= debt) revert PositionHealthy(borrower, liquidationValue, debt);
         }
 
-        uint256 price = _seizeReport(collateralToken, cfg).fairValue;
+        uint256 price = _seizePrice(collateralToken, cfg);
         (repaid, seized) = _liquidationAmounts(borrower, collateralToken, cfg, debt, repayAmount, price);
         if (seized < minSeized) revert SeizeBelowMinimum(seized, minSeized);
 
@@ -638,6 +638,22 @@ contract NightshiftCredit is ERC4626, Ownable2Step, Pausable, ReentrancyGuardTra
         data.healthFactor = data.debt == 0 ? type(uint256).max : Math.mulDiv(data.liquidationValue, WAD, data.debt);
     }
 
+    /// @notice The largest amount `account` can {borrow} right now, exactly: it accounts for the protocol-favoring
+    ///         rounding of scaled debt (so `borrow(maxBorrow(a))` succeeds and one wei more fails unless capped by
+    ///         cash). Returns 0 while paused or if any enabled collateral fails a safety gate.
+    /// @dev With power P, scaled debt S and index i, a borrow of `a` passes iff
+    ///      `ceil((S + ceil(a*RAY/i)) * i/RAY) <= P`, i.e. iff `a <= floor((floor(P*RAY/i) - S) * i/RAY)`.
+    function maxBorrow(address account) external view returns (uint256) {
+        if (paused()) return 0;
+        Position memory pos = _positions[account];
+        (uint256 power, bytes memory err) = _borrowPower(account, pos.collateralMask);
+        if (err.length != 0) return 0;
+        uint256 index = _currentIndex();
+        uint256 maxScaled = Math.mulDiv(power, RAY, index);
+        if (maxScaled <= pos.scaledDebt) return 0;
+        return Math.min(Math.mulDiv(maxScaled - pos.scaledDebt, index, RAY), _cash);
+    }
+
     /// @notice Whether {liquidate} would accept `account` as unhealthy right now.
     function isLiquidatable(address account) external view returns (bool) {
         Position memory pos = _positions[account];
@@ -707,21 +723,29 @@ contract NightshiftCredit is ERC4626, Ownable2Step, Pausable, ReentrancyGuardTra
     }
 
     /// @dev Reverts unless every *enabled* collateral of `account` passes the gates and `debt <= borrowing power`.
-    ///      Disabled collateral contributes no borrowing power, so its report is irrelevant here.
     function _requireBorrowable(address account, uint256 mask, uint256 debt) private view {
-        uint256 power = 0;
+        (uint256 power, bytes memory err) = _borrowPower(account, mask);
+        if (err.length != 0) _revert(err);
+        if (debt > power) revert InsufficientCollateral(account, debt, power);
+    }
+
+    /// @dev Borrowing power over `account`'s *enabled* collateral, valued at `lower` (rounded down). If an enabled
+    ///      collateral fails a gate, returns (0, the ABI-encoded custom error). Disabled collateral contributes no
+    ///      borrowing power, so its report is irrelevant here.
+    function _borrowPower(address account, uint256 mask) private view returns (uint256 power, bytes memory err) {
         for (uint256 i = 0; mask != 0; ++i) {
             if (mask & 1 != 0) {
                 address token = _collateralTokens[i];
                 CollateralConfig memory cfg = _configs[token];
                 if (cfg.enabled) {
-                    INightshiftOracle.Report memory r = _gatedReport(token, cfg);
+                    INightshiftOracle.Report memory r;
+                    (r, err) = _checkedReport(token, cfg, true);
+                    if (err.length != 0) return (0, err);
                     power += _valueBps(_collateral[account][token], r.lower, cfg.baseLtvBps, cfg.decimals);
                 }
             }
             mask >>= 1;
         }
-        if (debt > power) revert InsufficientCollateral(account, debt, power);
     }
 
     /// @dev Sum of collateral * lower * liqThreshold over all of `account`'s collateral, from the latest reports of
@@ -743,41 +767,50 @@ contract NightshiftCredit is ERC4626, Ownable2Step, Pausable, ReentrancyGuardTra
         }
     }
 
-    /// @dev Latest report of `token`, reverting unless it may back new risk (borrows, collateral withdrawals).
-    function _gatedReport(address token, CollateralConfig memory cfg)
-        private
-        view
-        returns (INightshiftOracle.Report memory r)
-    {
-        r = _freshReport(token, cfg);
-        if (r.flags & ReportLib.FLAG_DEGRADED != 0) revert DegradedReport(token);
-        if (!ReportLib.bandWithin(r, cfg.maxBandBps)) revert BandTooWide(token, ReportLib.bandBps(r), cfg.maxBandBps);
+    /// @dev Fair value of `token` for pricing a seizure; reverts unless the report may be used for one.
+    function _seizePrice(address token, CollateralConfig memory cfg) private view returns (uint256) {
+        (INightshiftOracle.Report memory r, bytes memory err) = _checkedReport(token, cfg, false);
+        if (err.length != 0) _revert(err);
+        return r.fairValue;
     }
 
-    /// @dev Latest report of `token` for pricing a seizure: must exist, be well formed, fresh and not flagged
-    ///      corporate action. Degraded or wide-band reports are accepted: liquidations must keep working exactly when
-    ///      uncertainty is high.
-    function _seizeReport(address token, CollateralConfig memory cfg)
+    /// @dev Latest report of `token` and, if it may not be used, the custom error saying why (empty when usable).
+    ///      Every use needs a report that exists, is well formed, is at most `maxAge` old and is not flagged corporate
+    ///      action. New risk (`forBorrow`) additionally needs no model-degraded flag and a band no wider than
+    ///      `maxBandBps`; seizures accept degraded and wide-band reports because liquidations must keep working
+    ///      exactly when uncertainty is high.
+    function _checkedReport(address token, CollateralConfig memory cfg, bool forBorrow)
         private
         view
-        returns (INightshiftOracle.Report memory)
-    {
-        return _freshReport(token, cfg);
-    }
-
-    function _freshReport(address token, CollateralConfig memory cfg)
-        private
-        view
-        returns (INightshiftOracle.Report memory r)
+        returns (INightshiftOracle.Report memory r, bytes memory err)
     {
         bool exists;
         // Called per collateral from bounded (<= MAX_COLLATERALS) loops; view call to the immutable, trusted oracle.
         // forge-lint: disable-next-line(calls-loop)
         (exists, r) = oracle.tryGetReport(token);
-        if (!exists) revert MissingReport(token);
-        if (!ReportLib.isWellFormed(r)) revert MalformedReport(token);
-        if (!ReportLib.isFreshAt(r.updatedAt, cfg.maxAge)) revert StaleReport(token, r.updatedAt, cfg.maxAge);
-        if (r.flags & ReportLib.FLAG_CORPORATE_ACTION != 0) revert CorporateAction(token);
+        if (!exists) return (r, abi.encodeWithSelector(MissingReport.selector, token));
+        if (!ReportLib.isWellFormed(r)) return (r, abi.encodeWithSelector(MalformedReport.selector, token));
+        if (!ReportLib.isFreshAt(r.updatedAt, cfg.maxAge)) {
+            return (r, abi.encodeWithSelector(StaleReport.selector, token, r.updatedAt, cfg.maxAge));
+        }
+        if (r.flags & ReportLib.FLAG_CORPORATE_ACTION != 0) {
+            return (r, abi.encodeWithSelector(CorporateAction.selector, token));
+        }
+        if (forBorrow) {
+            if (r.flags & ReportLib.FLAG_DEGRADED != 0) {
+                return (r, abi.encodeWithSelector(DegradedReport.selector, token));
+            }
+            if (!ReportLib.bandWithin(r, cfg.maxBandBps)) {
+                return (r, abi.encodeWithSelector(BandTooWide.selector, token, ReportLib.bandBps(r), cfg.maxBandBps));
+            }
+        }
+    }
+
+    /// @dev Re-throws an ABI-encoded custom error.
+    function _revert(bytes memory err) private pure {
+        assembly ("memory-safe") {
+            revert(add(err, 0x20), mload(err))
+        }
     }
 
     // ------------------------------------------------------------------------------------------------------------

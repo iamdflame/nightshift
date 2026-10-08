@@ -109,6 +109,12 @@ abstract contract CreditInvariantBase is Test {
         assertFalse(handler.ghostSharePriceDecreased());
     }
 
+    /// `maxBorrow` is exact in every reachable state: borrowing it always succeeds and leaves zero headroom
+    /// (unless capped by cash).
+    function invariant_maxBorrowIsAlwaysExact() public view {
+        assertFalse(handler.ghostMaxBorrowNotExact());
+    }
+
     /// Per-token collateral: account balances sum to the tracked total, which equals the tokens actually held.
     function invariant_collateralAccounting() public view {
         for (uint256 t; t < handler.tokenCount(); ++t) {

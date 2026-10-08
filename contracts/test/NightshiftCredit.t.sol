@@ -774,6 +774,46 @@ contract NightshiftCreditTest is CreditFixture {
         assertFalse(credit.isLiquidatable(borrower));
     }
 
+    // ================================================================== maxBorrow
+
+    function test_maxBorrow_exactWhenIndexAboveRay() public {
+        _open();
+        vm.warp(SAT + 1 days + 7); // the index grows from deployment, even before any debt exists
+        _post(address(nvda), FAIR, LOWER, UPPER);
+        assertGt(credit.borrowIndex(), RAY);
+        uint256 max = credit.maxBorrow(borrower);
+        assertLe(max, 110e18);
+        assertGe(max + 2, 110e18); // at most 2 wei below the nominal power (scaled-debt rounding)
+
+        vm.prank(borrower);
+        vm.expectPartialRevert(NightshiftCredit.InsufficientCollateral.selector);
+        credit.borrow(max + 1, borrower);
+        _borrow(borrower, max);
+        assertEq(credit.maxBorrow(borrower), 0);
+    }
+
+    function test_maxBorrow_zeroWhenGatedPausedOrEmpty() public {
+        assertEq(credit.maxBorrow(borrower), 0); // no collateral
+        _open();
+        assertEq(credit.maxBorrow(borrower), 110e18);
+        vm.warp(SAT + 3601);
+        assertEq(credit.maxBorrow(borrower), 0); // stale report
+        _post(address(nvda), FAIR, LOWER, UPPER);
+        assertGt(credit.maxBorrow(borrower), 0);
+        vm.prank(owner);
+        credit.pause();
+        assertEq(credit.maxBorrow(borrower), 0);
+    }
+
+    function test_maxBorrow_cappedByCash() public {
+        _lend(lender, 50e18);
+        _depositCollateral(borrower, nvda, 1e18);
+        _post(address(nvda), FAIR, LOWER, UPPER);
+        assertEq(credit.maxBorrow(borrower), 50e18);
+        _borrow(borrower, 50e18);
+        assertEq(credit.maxBorrow(borrower), 0);
+    }
+
     // ================================================================== reentrancy
 
     function test_reentrancy_blockedOnCollateralHooks() public {

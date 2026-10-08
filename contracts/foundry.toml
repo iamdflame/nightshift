@@ -42,6 +42,8 @@ fail_on_revert = false
 #    that precede its events are STATICCALLs (oracle reads, token metadata). The lint cannot see either fact and fires
 #    on every event that follows an oracle read.
 exclude_lints = ["block-timestamp", "require-revert-in-loop", "reentrancy-events"]
+# Lints target production code; tests and scripts use cheatcode patterns (vm.warp, pranks) the rules misread.
+ignore = ["test/**/*.sol", "script/**/*.sol"]
 
 [fmt]
 line_length = 120
