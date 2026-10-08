@@ -1,0 +1,14 @@
+{
+  "name": "@nightshift/nfv",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Nightshift Fair Value: the dark-hours pricing engine. The backtest and the live oracle run this same code.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@nightshift/core": "workspace:*",
+    "@nightshift/tape": "workspace:*"
+  }
+}

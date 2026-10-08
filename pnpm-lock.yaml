@@ -187,6 +187,15 @@ importers:
         specifier: workspace:*
         version: link:../core
 
+  packages/nfv:
+    dependencies:
+      '@nightshift/core':
+        specifier: workspace:*
+        version: link:../core
+      '@nightshift/tape':
+        specifier: workspace:*
+        version: link:../tape
+
   packages/tape:
     dependencies:
       '@nightshift/core':

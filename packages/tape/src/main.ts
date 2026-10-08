@@ -81,6 +81,19 @@ async function collectReference(): Promise<void> {
   tape.log("info", "reference", `${ok}/${tickers.length} reference quotes (${session})`);
 }
 
+/** Official daily bars (the open/close anchors forecasts are scored against), kept current. */
+async function collectDailyRefs(): Promise<void> {
+  const tickers = [...new Set(bstocks().map((i) => i.ticker))];
+  let ok = 0;
+  for (const t of tickers) {
+    const r = await chart(t, "1d", "5d", false);
+    if (!r) continue;
+    tape.upsertRefBars(t, "1d", r.bars, "yahoo-chart");
+    ok++;
+  }
+  tape.log("info", "daily-refs", `${ok}/${tickers.length} tickers refreshed`);
+}
+
 async function collectRecentKlines(): Promise<void> {
   const end = Date.now();
   const start = end - 6 * 3600_000;
@@ -118,13 +131,14 @@ function every(name: string, everyMs: number | (() => number), task: () => Promi
 async function main(): Promise<void> {
   tape.log("info", "collector", `starting; session=${sessionAt(Date.now())}`);
   await refreshRegistry();
-  every("registry", 60 * 60_000, refreshRegistry);
+  setTimeout(() => every("registry", 60 * 60_000, refreshRegistry), 60 * 60_000);
   every("books", 15_000, collectBooks);
   every("depth", 60_000, collectDepth);
   every("pools", 120_000, collectPools);
   // Reference prices move only while a US session is live; poll slowly in the dark hours.
   every("reference", () => (sessionAt(Date.now()) === "closed" ? 30 * 60_000 : 5 * 60_000), collectReference);
-  every("klines", 30 * 60_000, collectRecentKlines);
+  every("klines", 5 * 60_000, collectRecentKlines);
+  every("daily-refs", 20 * 60_000, collectDailyRefs);
 }
 
 process.on("unhandledRejection", (e) => tape.log("error", "process", `unhandled rejection: ${String(e)}`));
