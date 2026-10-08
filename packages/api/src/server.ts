@@ -1,0 +1,80 @@
+/**
+ * Nightshift API server.
+ *
+ *   pnpm exec tsx packages/api/src/server.ts      (PORT, default 8787)
+ */
+import cors from "@fastify/cors";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import Fastify from "fastify";
+import { buildMcpServer } from "./mcp.ts";
+import { openapi } from "./openapi.ts";
+import { Queries } from "./queries.ts";
+
+const PORT = Number(process.env.PORT ?? 8787);
+const q = new Queries();
+const app = Fastify({ logger: { level: process.env.LOG_LEVEL ?? "info" } });
+await app.register(cors, { origin: true });
+
+app.get("/", async () => ({
+  name: "Nightshift",
+  tagline: "The price of a stock when Wall Street is asleep.",
+  docs: "/openapi.json",
+  mcp: "/mcp",
+  endpoints: Object.keys(openapi.paths),
+}));
+app.get("/openapi.json", async () => openapi);
+app.get("/v1/status", async () => q.status());
+app.get("/v1/fair-value", async () => {
+  const rows = q.consensus();
+  return { round: q.latestRound(), count: rows.length, data: rows.map((c) => q.formatConsensus(c)) };
+});
+app.get<{ Params: { token: string } }>("/v1/fair-value/:token", async (req, reply) => {
+  const r = q.fairValue(req.params.token);
+  return r ?? reply.code(404).send({ error: `no fair value for ${req.params.token}` });
+});
+app.get<{ Params: { ticker: string } }>("/v1/which/:ticker", async (req, reply) => {
+  const r = q.which(req.params.ticker);
+  return r ?? reply.code(404).send({ error: `unknown ticker ${req.params.ticker}` });
+});
+app.get("/v1/radar", async () => q.radar());
+app.get<{ Querystring: { ticker?: string } }>("/v1/instruments", async (req) => q.instruments(req.query.ticker));
+app.get<{ Querystring: { limit?: string } }>("/v1/rounds", async (req) => q.rounds(Math.min(500, Number(req.query.limit ?? 50))));
+app.get<{ Params: { round: string; forecaster: string; token: string } }>("/v1/rounds/:round/proof/:forecaster/:token", async (req, reply) => {
+  const r = q.proof(Number(req.params.round), req.params.forecaster, req.params.token);
+  return r ?? reply.code(404).send({ error: "forecast not found in that round" });
+});
+app.get("/v1/scoreboard", async () => ({ scoreboard: q.scoreboard() }));
+app.get("/v1/results", async () => ({ results: q.results(30) }));
+app.get("/v1/study", async () => q.study());
+
+// Server-sent events: push each new round's consensus as the Night Shift produces it.
+app.get("/v1/stream", (req, reply) => {
+  reply.raw.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-cache", connection: "keep-alive", "access-control-allow-origin": "*" });
+  let last = -1;
+  const push = () => {
+    const r = q.latestRound();
+    if (r && r.round !== last) {
+      last = r.round;
+      reply.raw.write(`event: round\ndata: ${JSON.stringify({ round: r, consensus: q.consensus().map((c) => q.formatConsensus(c)) })}\n\n`);
+    } else reply.raw.write(`: keep-alive ${Date.now()}\n\n`);
+  };
+  push();
+  const timer = setInterval(push, 15_000);
+  req.raw.on("close", () => clearInterval(timer));
+});
+
+// MCP over Streamable HTTP, stateless: a fresh server + transport per request.
+app.post("/mcp", async (req, reply) => {
+  const server = buildMcpServer(q);
+  const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+  reply.raw.on("close", () => {
+    void transport.close();
+    void server.close();
+  });
+  await server.connect(transport);
+  reply.hijack();
+  await transport.handleRequest(req.raw, reply.raw, req.body);
+});
+app.get("/mcp", async (_req, reply) => reply.code(405).send({ error: "Use POST for MCP (Streamable HTTP, stateless)" }));
+
+await app.listen({ port: PORT, host: "0.0.0.0" });

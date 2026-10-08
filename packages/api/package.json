@@ -1,0 +1,20 @@
+{
+  "name": "@nightshift/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Nightshift public API: fair value, which-NVIDIA, radar, rounds and proofs, scoreboard, study. Serves the frontend, agents (MCP) and judges.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@fastify/cors": "^11.3.0",
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "@nightshift/core": "workspace:*",
+    "@nightshift/network": "workspace:*",
+    "@nightshift/nfv": "workspace:*",
+    "@nightshift/tape": "workspace:*",
+    "fastify": "^5.12.5",
+    "zod": "^4.6.5"
+  }
+}
