@@ -74,26 +74,34 @@ abstract contract SwapFeeAssertions is Test {
     ) internal view returns (FeeCheck memory c) {
         PoolState memory post = _poolState(pm, key);
         assertEq(post.liquidity, pre.liquidity, "swap left the liquidity range");
-        uint256 net = zeroForOne
-            ? SqrtPriceMath.getAmount0Delta(post.sqrtPriceX96, pre.sqrtPriceX96, pre.liquidity, true)
-            : SqrtPriceMath.getAmount1Delta(pre.sqrtPriceX96, post.sqrtPriceX96, pre.liquidity, true);
         c.amountIn = amountIn;
-        c.realizedFee = amountIn - net;
+        c.realizedFee = amountIn - _netInput(zeroForOne, pre, post);
         c.expectedSwapFee = _swapFeeFor(pre.protocolFee, zeroForOne, lpFee);
         assertApproxEqAbs(c.realizedFee, (amountIn * c.expectedSwapFee) / 1e6, 10, "realized fee != hook fee");
+        _checkFeeSplit(c, zeroForOne, pre, post);
+    }
 
+    /// Input that moved the price from pre to post (rounded up, as the pool charges it).
+    function _netInput(bool zeroForOne, PoolState memory pre, PoolState memory post) private pure returns (uint256) {
+        return zeroForOne
+            ? SqrtPriceMath.getAmount0Delta(post.sqrtPriceX96, pre.sqrtPriceX96, pre.liquidity, true)
+            : SqrtPriceMath.getAmount1Delta(pre.sqrtPriceX96, post.sqrtPriceX96, pre.liquidity, true);
+    }
+
+    /// Every wei of fee lands with LPs (fee growth) or the protocol, and the protocol takes only its own rate.
+    function _checkFeeSplit(FeeCheck memory c, bool zeroForOne, PoolState memory pre, PoolState memory post)
+        private
+        pure
+    {
         unchecked {
-            uint256 growth = zeroForOne
-                ? post.feeGrowth0X128 - pre.feeGrowth0X128
-                : post.feeGrowth1X128 - pre.feeGrowth1X128;
+            uint256 growth =
+                zeroForOne ? post.feeGrowth0X128 - pre.feeGrowth0X128 : post.feeGrowth1X128 - pre.feeGrowth1X128;
             c.lpFee = Math.mulDiv(growth, pre.liquidity, 1 << 128);
-            c.protocolCut = zeroForOne
-                ? post.protocolAccrued0 - pre.protocolAccrued0
-                : post.protocolAccrued1 - pre.protocolAccrued1;
+            c.protocolCut =
+                zeroForOne ? post.protocolAccrued0 - pre.protocolAccrued0 : post.protocolAccrued1 - pre.protocolAccrued1;
         }
-        // Every wei of fee lands with LPs or the protocol, and the protocol takes only its own rate.
         assertApproxEqAbs(c.lpFee + c.protocolCut, c.realizedFee, 10, "fee not credited");
-        uint16 pf = zeroForOne ? uint16(pre.protocolFee & 0xfff) : uint16(pre.protocolFee >> 12);
-        assertApproxEqAbs(c.protocolCut, (amountIn * pf) / 1e6, 10, "protocol cut");
+        uint256 pf = zeroForOne ? pre.protocolFee & 0xfff : pre.protocolFee >> 12;
+        assertApproxEqAbs(c.protocolCut, (c.amountIn * pf) / 1e6, 10, "protocol cut");
     }
 }
