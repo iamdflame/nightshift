@@ -27,6 +27,7 @@ kind = "evm-local"
 signer = "local"
 keystore_dir = "../../.studio/wallets"
 # address = "0x..."   # filled by `bag wallet new`
+address = "0x9D9675C5523b3b2D42E9989ae13B6081536aC29b"
 
 [llm]
 provider = "none"
@@ -47,7 +48,7 @@ assets = ["U","USD1","BINANCE_PEG_USDC","BINANCE_PEG_USDT"]
 
 [payments.erc8183]
 # Seller 价格与资产来自 [payments.seller]；本表只保留 ERC-8183 行为参数。
-enabled = false
+enabled = true
 quote_ttl_seconds = 900                        # seconds a signed quote stays valid; SDK caps at 900 (~15min work window)
 default_estimated_completion_seconds = 600
 poll_interval_seconds = 30
