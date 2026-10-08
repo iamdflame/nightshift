@@ -258,6 +258,9 @@ importers:
       '@nightshift/feeds':
         specifier: workspace:*
         version: link:../feeds
+      '@nightshift/sdk':
+        specifier: workspace:*
+        version: link:../sdk
 
   packages/trade:
     dependencies:

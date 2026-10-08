@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@nightshift/core": "workspace:*",
-    "@nightshift/feeds": "workspace:*"
+    "@nightshift/feeds": "workspace:*",
+    "@nightshift/sdk": "workspace:*"
   }
 }

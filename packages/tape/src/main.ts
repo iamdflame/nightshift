@@ -7,7 +7,10 @@
 import { BSC, type Instrument, sessionAt } from "@nightshift/core";
 import { bookTickers, chart, depth, fetchRegistry, klines, poolsForTokens } from "@nightshift/feeds";
 import { Tape } from "./db.ts";
+import { loadEnv } from "./env.ts";
+import { Web3Feeds, web3Enabled } from "./web3.ts";
 
+loadEnv(); // keys for the official Binance Web3 API
 const tape = new Tape();
 
 /** Crypto majors and 24/7 macro proxies (gold) from the same CEX — the always-on factors. */
@@ -138,6 +141,21 @@ async function main(): Promise<void> {
   // Reference prices move only while a US session is live; poll slowly in the dark hours.
   every("reference", () => (sessionAt(Date.now()) === "closed" ? 30 * 60_000 : 5 * 60_000), collectReference);
   every("klines", 5 * 60_000, collectRecentKlines);
+  if (web3Enabled()) {
+    const w3 = new Web3Feeds(tape);
+    const covered = () => registry.filter((i) => i.chainId === BSC && (i.issuer === "bstocks" || (i.issuer === "ondo" && bstocks().some((b) => b.ticker === i.ticker))));
+    every("web3.rwa-price", 30_000, async () => {
+      tape.log("info", "web3.rwa-price", `${await w3.rwaPrices(covered())} prices`);
+    });
+    every("web3.market", 5 * 60_000, async () => {
+      tape.log("info", "web3.market", `${await w3.marketStatus(bstocks().filter((i) => DEPTH_TICKERS.includes(i.ticker)))} statuses`);
+    });
+    every("web3.quotes", 10 * 60_000, async () => {
+      const mids = new Map<string, number>();
+      for (const r of tape.db.prepare(`SELECT token, token_price FROM rwa_price WHERE ts > ? ORDER BY ts`).all(Date.now() - 10 * 60_000) as { token: string; token_price: number }[]) mids.set(r.token, r.token_price);
+      tape.log("info", "web3.quotes", `${await w3.quoteLadder(registry, (t) => mids.get(t) ?? null)} quotes`);
+    });
+  } else tape.log("info", "collector", "official Binance Web3 API feeds off (set BINANCE_WEB3_API_KEY / BINANCE_WEB3_SECRET_KEY in .env)");
   every("daily-refs", 20 * 60_000, collectDailyRefs);
 }
 
