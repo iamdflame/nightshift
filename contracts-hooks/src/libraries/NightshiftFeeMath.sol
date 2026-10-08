@@ -55,11 +55,14 @@ library NightshiftFeeMath {
         OracleFailure // oracle call reverted or returned malformed data (detected by the hook): maxFee
     }
 
-    /// @notice Pool mid price in USD per whole stock token, 8 decimals.
-    /// @dev sqrtPriceX96 encodes sqrt(raw currency1 / raw currency0) * 2^96. priceX128 = sqrtPriceX96^2 / 2^64 is that
-    ///      raw ratio as a Q128.128 number and is exact (floor) over the whole PancakeSwap price range: MIN_SQRT_RATIO
-    ///      > 2^32 keeps it >= 1 and MAX_SQRT_RATIO < 2^160 keeps it < 2^256. With decimals <= 18 the result is below
-    ///      2^128 * 1e26, so nothing downstream can overflow. Requires sqrtPriceX96 >= 2^32 (any initialized pool).
+    /// @notice Pool mid price in USD per whole stock token, 8 decimals, rounded down.
+    /// @dev sqrtPriceX96 = sqrt(raw currency1 / raw currency0) * 2^96, and USD per stock is
+    ///        stock = currency0:  s^2 * 10^(8 + stockDecimals) / (2^192 * 10^quoteDecimals)
+    ///        stock = currency1:  2^192 * 10^(8 + stockDecimals) / (s^2 * 10^quoteDecimals)
+    ///      Both are evaluated as an exact floor with no intermediate truncation (floor(floor(a / b) / c) equals
+    ///      floor(a / (b * c)) for positive integers). With s < 2^160 and decimals <= 18, s * 10^26 < 2^247 fits and
+    ///      the result is below 2^215, so nothing downstream can overflow. Requires sqrtPriceX96 > 0 (any
+    ///      initialized pool has sqrtPriceX96 >= MIN_SQRT_RATIO).
     /// @param sqrtPriceX96 Pool sqrt price from slot0.
     /// @param stockIsCurrency0 True when the stock token is currency0 (and the quote is currency1).
     /// @param stockDecimals Decimals of the stock token (<= 18).
@@ -69,12 +72,10 @@ library NightshiftFeeMath {
         pure
         returns (uint256)
     {
-        uint256 priceX128 = Math.mulDiv(sqrtPriceX96, sqrtPriceX96, 1 << 64);
         uint256 scale = 10 ** (8 + uint256(stockDecimals));
-        // stock = currency0: USD/stock = (raw quote per raw stock) * 10^stockDecimals / 10^quoteDecimals.
-        // stock = currency1: the raw ratio is stock per quote, so invert it.
-        uint256 scaled = stockIsCurrency0 ? Math.mulDiv(priceX128, scale, 1 << 128) : Math.mulDiv(1 << 128, scale, priceX128);
-        // floor(floor(a / b) / c) == floor(a / (b * c)) for positive integers: no precision is lost by splitting.
+        uint256 scaled = stockIsCurrency0
+            ? Math.mulDiv(sqrtPriceX96, uint256(sqrtPriceX96) * scale, 1 << 192)
+            : Math.mulDiv(1 << 192, scale, sqrtPriceX96) / sqrtPriceX96;
         return scaled / 10 ** uint256(quoteDecimals);
     }
 
@@ -87,11 +88,13 @@ library NightshiftFeeMath {
     {
         uint256 stockScale = 10 ** (8 + uint256(stockDecimals));
         uint256 quoteScale = 10 ** uint256(quoteDecimals);
-        // ratioX192 = raw currency1 per raw currency0, as a Q64.192 number.
-        uint256 ratioX192 = stockIsCurrency0
-            ? Math.mulDiv(priceE8 * quoteScale, 1 << 192, stockScale)
-            : Math.mulDiv(stockScale, 1 << 192, priceE8 * quoteScale);
-        return SafeCastU160.toUint160(Math.sqrt(ratioX192));
+        // raw currency1 per raw currency0 = num / den
+        (uint256 num, uint256 den) =
+            stockIsCurrency0 ? (priceE8 * quoteScale, stockScale) : (stockScale, priceE8 * quoteScale);
+        // sqrt(num / den) * 2^96 = sqrt(num * 2^192 / den). Below a 2^64 ratio the Q192 intermediate fits in 256 bits;
+        // above it, use Q128 and shift the root by 32 bits (the root then still carries >= 64 integer bits).
+        if (num / den < (1 << 64)) return SafeCastU160.toUint160(Math.sqrt(Math.mulDiv(num, 1 << 192, den)));
+        return SafeCastU160.toUint160(Math.sqrt(Math.mulDiv(num, 1 << 128, den)) << 32);
     }
 
     /// @notice True when the trade buys the stock token (the quote token goes in).
@@ -130,7 +133,7 @@ library NightshiftFeeMath {
     }
 
     /// @notice Fee for a report that passed checkReport.
-    /// @dev Cannot overflow: priceE8 < 2^128 * 1e26 (see poolPriceE8) and informedSlope <= 2^24.
+    /// @dev Cannot overflow: priceE8 < 2^215 (see poolPriceE8) and informedSlope < 2^24.
     function feeForUsableReport(
         FeeParams memory p,
         INightshiftOracle.Report memory r,
