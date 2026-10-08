@@ -3,6 +3,7 @@ pragma solidity ^0.8.26;
 
 import {IERC721} from "@openzeppelin-contracts/token/ERC721/IERC721.sol";
 import {MerkleProof} from "@openzeppelin-contracts/utils/cryptography/MerkleProof.sol";
+import {SafeCast} from "@openzeppelin-contracts/utils/math/SafeCast.sol";
 
 /// @title ForecastBook
 /// @author Nightshift
@@ -33,7 +34,8 @@ import {MerkleProof} from "@openzeppelin-contracts/utils/cryptography/MerkleProo
 ///         nodes are `keccak256(min(a, b) ++ max(a, b))` (OpenZeppelin `MerkleProof`, sorted pairs), so proofs carry
 ///         no left/right flags.
 ///
-///         This is exactly OpenZeppelin `@openzeppelin/merkle-tree`'s StandardMerkleTree with leaf types
+///         This is exactly the StandardMerkleTree of OpenZeppelin's JavaScript merkle-tree library (npm package
+///         "openzeppelin/merkle-tree" under the OpenZeppelin scope) with leaf types
 ///         `["uint64","address","uint128","uint128","uint128","uint64"]`; building the tree with
 ///         `StandardMerkleTree.of(values, types)` yields a root and proofs this contract accepts. A fixed test vector
 ///         (four leaves and their root) lives in `test/ForecastBook.t.sol` and `docs/contracts.md`.
@@ -113,7 +115,7 @@ contract ForecastBook {
 
         c.root = root;
         c.anchorTime = anchorTime;
-        c.committedAt = uint64(block.timestamp);
+        c.committedAt = SafeCast.toUint64(block.timestamp);
         c.count = count;
         emit ForecastCommitted(msg.sender, round, anchorTime, root, count);
     }
@@ -175,12 +177,10 @@ contract ForecastBook {
     function linkAgent(uint256 agentId) external {
         IERC721 registry = identityRegistry;
         if (address(registry) == address(0)) revert IdentityRegistryDisabled();
-        address owner;
-        try registry.ownerOf(agentId) returns (address o) {
-            owner = o;
-        } catch {
-            revert UnknownAgent(agentId);
-        }
+        // agentId + 1 is stored; the largest id cannot be represented (and no registry mints it in practice).
+        if (agentId == type(uint256).max) revert UnknownAgent(agentId);
+        (bool known, address owner) = _tryOwnerOf(registry, agentId);
+        if (!known) revert UnknownAgent(agentId);
         if (owner != msg.sender) revert NotAgentOwner(agentId, msg.sender, owner);
 
         _agentIdPlusOne[msg.sender] = agentId + 1;
@@ -202,15 +202,21 @@ contract ForecastBook {
     }
 
     /// @notice Whether `forecaster` linked an agent and still owns it in the registry (links go stale if the agent
-    ///         NFT is transferred). Never reverts.
+    ///         NFT is transferred). Returns false (instead of reverting) for agents the registry does not know.
     function isLinkCurrent(address forecaster) external view returns (bool) {
         uint256 stored = _agentIdPlusOne[forecaster];
         IERC721 registry = identityRegistry;
         if (stored == 0 || address(registry) == address(0)) return false;
-        try registry.ownerOf(stored - 1) returns (address owner) {
-            return owner == forecaster;
+        (bool known, address owner) = _tryOwnerOf(registry, stored - 1);
+        return known && owner == forecaster;
+    }
+
+    /// @dev `ownerOf` without bubbling the registry's revert for unknown ids.
+    function _tryOwnerOf(IERC721 registry, uint256 agentId) private view returns (bool known, address owner) {
+        try registry.ownerOf(agentId) returns (address o) {
+            return (true, o);
         } catch {
-            return false;
+            return (false, address(0));
         }
     }
 }

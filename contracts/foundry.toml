@@ -32,6 +32,17 @@ runs = 1024
 depth = 256
 fail_on_revert = false
 
+[lint]
+# Excluded by design, everything else stays on:
+#  - block-timestamp: staleness, commit deadlines and interest accrual are time-based by definition; validator drift
+#    of a few seconds is negligible next to staleness budgets of minutes to hours.
+#  - require-revert-in-loop: report batches and multi-collateral risk checks are deliberately atomic; reverting with
+#    an error that names the offending token is the intended behaviour.
+#  - reentrancy-events: every state-changing entry point of the credit market is `nonReentrant`, and the external calls
+#    that precede its events are STATICCALLs (oracle reads, token metadata). The lint cannot see either fact and fires
+#    on every event that follows an oracle read.
+exclude_lints = ["block-timestamp", "require-revert-in-loop", "reentrancy-events"]
+
 [fmt]
 line_length = 120
 tab_width = 4

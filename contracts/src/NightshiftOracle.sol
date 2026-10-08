@@ -83,6 +83,9 @@ contract NightshiftOracle is INightshiftOracleExtended, Ownable2Step {
         feed = address(new NightshiftFeed{salt: _feedSalt(token)}(INightshiftOracle(address(this)), token));
         feedOf[token] = feed;
         _feedTokens.push(token);
+        // The only external call above is the feed constructor's bounded `staticcall` to `token.symbol()`, which
+        // cannot re-enter state-changing code.
+        // forge-lint: disable-next-line(reentrancy-events)
         emit FeedCreated(token, feed);
     }
 
@@ -159,7 +162,7 @@ contract NightshiftOracle is INightshiftOracleExtended, Ownable2Step {
     /// @notice CREATE2 address the feed for `token` has (or will have).
     function predictFeed(address token) external view returns (address) {
         bytes32 initCodeHash = keccak256(
-            abi.encodePacked(type(NightshiftFeed).creationCode, abi.encode(INightshiftOracle(address(this)), token))
+            bytes.concat(type(NightshiftFeed).creationCode, abi.encode(INightshiftOracle(address(this)), token))
         );
         return address(
             uint160(uint256(keccak256(abi.encodePacked(bytes1(0xff), address(this), _feedSalt(token), initCodeHash))))

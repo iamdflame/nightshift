@@ -41,10 +41,12 @@ contract NightshiftFeed is AggregatorV3Interface {
 
     /// @notice `getRoundData` was asked for a round the oracle no longer (or never) stores.
     error RoundNotAvailable(uint80 requested, uint80 latest);
+    error ZeroAddress();
 
     /// @param oracle_ The Nightshift oracle (the deployer when created through the factory).
     /// @param token_ The token to price. Its `symbol()` is read once to build {description}.
     constructor(INightshiftOracle oracle_, address token_) {
+        if (address(oracle_) == address(0) || token_ == address(0)) revert ZeroAddress();
         oracle = oracle_;
         token = token_;
         _description = string.concat(_readSymbol(token_), " / USD (Nightshift)");
@@ -95,7 +97,11 @@ contract NightshiftFeed is AggregatorV3Interface {
     /// @return anchorTime Unix seconds of the next regular-session open.
     /// @return session Underlying session at `updatedAt` (0 regular … 5 halted).
     /// @return flags Report flags (bit0 corporate action, bit1 reference stale, bit2 thin liquidity, bit3 degraded).
-    function band() external view returns (uint128 lower, uint128 upper, uint64 anchorTime, uint8 session, uint8 flags) {
+    function band()
+        external
+        view
+        returns (uint128 lower, uint128 upper, uint64 anchorTime, uint8 session, uint8 flags)
+    {
         INightshiftOracle.Report memory r = oracle.getReport(token);
         return (r.lower, r.upper, r.anchorTime, r.session, r.flags);
     }
@@ -119,31 +125,47 @@ contract NightshiftFeed is AggregatorV3Interface {
     }
 
     /// @dev Reads `symbol()` defensively. Accepts the standard ABI string encoding and the legacy bytes32 encoding;
-    ///      anything else (revert, empty, malformed, oversized, out of gas) yields the token's hex address.
+    ///      anything else (revert, empty, malformed, oversized, out of gas) yields the token's hex address. At most
+    ///      `64 + MAX_SYMBOL_LENGTH` bytes of return data are copied, so a "return bomb" cannot burn the caller's gas.
     function _readSymbol(address token_) private view returns (string memory) {
-        (bool ok, bytes memory data) = token_.staticcall{gas: SYMBOL_GAS_LIMIT}(abi.encodeWithSignature("symbol()"));
+        bytes memory ret = new bytes(64 + MAX_SYMBOL_LENGTH);
+        uint256 gasLimit = SYMBOL_GAS_LIMIT;
+        bool ok;
+        uint256 size;
+        assembly ("memory-safe") {
+            mstore(0x00, shl(224, 0x95d89b41)) // symbol()
+            ok := staticcall(gasLimit, token_, 0x00, 0x04, add(ret, 0x20), mload(ret))
+            size := returndatasize()
+        }
         if (ok) {
-            if (data.length == 32) {
-                bytes32 raw = bytes32(data);
-                uint256 n;
+            if (size == 32) {
+                // Legacy bytes32 symbol (e.g. MKR): text up to the first zero byte.
+                bytes32 raw;
+                assembly ("memory-safe") {
+                    raw := mload(add(ret, 0x20))
+                }
+                uint256 n = 0;
                 while (n < 32 && raw[n] != 0) ++n;
                 if (n != 0) {
                     bytes memory out = new bytes(n);
-                    for (uint256 i; i < n; ++i) {
+                    for (uint256 i = 0; i < n; ++i) {
                         out[i] = raw[i];
                     }
                     return string(out);
                 }
-            } else if (data.length >= 64) {
+            } else if (size >= 64) {
                 uint256 offset;
                 uint256 len;
                 assembly ("memory-safe") {
-                    offset := mload(add(data, 0x20))
-                    len := mload(add(data, 0x40))
+                    offset := mload(add(ret, 0x20))
+                    len := mload(add(ret, 0x40))
                 }
-                // Validated before decoding so abi.decode cannot revert.
-                if (offset == 32 && len != 0 && len <= MAX_SYMBOL_LENGTH && data.length >= 64 + len) {
-                    return abi.decode(data, (string));
+                if (offset == 32 && len != 0 && len <= MAX_SYMBOL_LENGTH && size >= 64 + len) {
+                    bytes memory out = new bytes(len);
+                    for (uint256 i = 0; i < len; ++i) {
+                        out[i] = ret[64 + i];
+                    }
+                    return string(out);
                 }
             }
         }
