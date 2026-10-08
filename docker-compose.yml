@@ -1,0 +1,32 @@
+# Nightshift on one small VPS. Secrets: .env + keys/ (never baked into the image).
+#   docker compose up -d --build
+x-common: &common
+  build: .
+  restart: unless-stopped
+  env_file: .env
+  volumes:
+    - ./data:/app/data
+    - ./keys:/app/keys
+    - ./deployments:/app/deployments
+  logging:
+    driver: json-file
+    options: { max-size: "20m", max-file: "5" }
+
+services:
+  collector:
+    <<: *common
+    command: ["pnpm", "exec", "tsx", "packages/tape/src/main.ts"]
+  night-shift:
+    <<: *common
+    command: ["pnpm", "exec", "tsx", "packages/network/src/runner.ts"]
+    depends_on: [collector]
+  api:
+    <<: *common
+    command: ["pnpm", "exec", "tsx", "packages/api/src/server.ts"]
+    ports: ["8787:8787"]
+    depends_on: [collector]
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8787/v1/status"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
