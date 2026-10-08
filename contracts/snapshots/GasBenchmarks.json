@@ -1,0 +1,13 @@
+{
+  "borrow_1collateral_again": "94008",
+  "borrow_1collateral_first": "120279",
+  "borrow_3collaterals": "124808",
+  "depositCollateral_first": "135707",
+  "lender_deposit_first": "130909",
+  "liquidate_partial": "146230",
+  "postReports_1token_firstWrite": "101946",
+  "postReports_1token_update": "45046",
+  "postReports_3tokens_mixed": "199550",
+  "postReports_3tokens_update": "85750",
+  "repay_full": "57923"
+}
