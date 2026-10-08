@@ -23,8 +23,11 @@ Nightshift is a network of AI agents that prices tokenized US stocks on BNB Chai
 | **Pay-for-accuracy** | **ERC-8183** jobs on BNB's live commerce, router and policy contracts. A forecaster is paid in U only if it beat the stale oracle; otherwise the Scorer disputes, with the score report's hash as evidence. |
 | **Which NVIDIA?** | `/v1/which/NVDA` plus an MCP tool and a **Wallet Skill** for the Binance Agentic Wallet. It compares every issuer per real share across the Binance spot book and BSC pools, checks against fair value, then trades via `baw`: market inside the band, limit at fair value outside it. |
 | **Credit** | `NightshiftCredit`: borrow USDT against bStocks 24/7. Collateral is valued at the **5th-percentile next-open price**, so a Sunday loan survives Monday's gap. Ships with a Venus `OracleInterface` adapter and Chainlink `AggregatorV3` feeds. |
-| **Pools** | A PancakeSwap Infinity hook with dynamic LP fees from the oracle. Informed reopen flow pays for the gap it captures. |
-| **API** | REST + SSE + OpenAPI + MCP: fair value, which, radar, rounds with Merkle proofs, live scoreboard, study. |
+| **Pools** | A PancakeSwap Infinity hook with dynamic LP fees from the oracle. Informed reopen flow pays for the gap it captures. **Measured on a BSC mainnet fork** (pool $230, fair value $236, ~$302k position): LPs lose **$70.63** with Nightshift vs **$244.92** (flat 0.05%) and **$207.81** (flat 0.25%), a **71% / 66% cut** in reopen losses ([hook.md](docs/hook.md)). |
+| **API** | REST + SSE + OpenAPI + MCP: fair value, which, radar, identities, rounds with Merkle proofs, receipts, live scoreboard, study, health. |
+| **Agent Studio seller** | `agents/NightshiftOracle`, scaffolded with `bag init` (BSC mainnet; A2A + MCP + x402; ERC-8183 + B402 rails). It sells deterministic fair-value reports to other agents. Negotiation verified: a signed **0.01 U** quote with `uma_oov3` evaluation. |
+| **Binance Web3 SDK** | `@nightshift/sdk` covers all **65 REST endpoints**, with HMAC, clock-skew correction, per-endpoint rate limits, circuit breakers, never-retry-writes, doc-drift telemetry to `dx_calls`, record/replay and a b402 merchant kit. It found **40 documentation issues** ([README](packages/sdk/README.md)). |
+| **Receipts** | `/v1/receipts/{tx}` turns any BSC tokenized-stock trade into cost per real share vs the fair value at that moment, rebuilt from on-chain logs. A real $2,451 NVDAB sale "sold 11.1 bps below fair value". |
 
 ## Results
 
@@ -88,7 +91,12 @@ pnpm exec tsx packages/network/src/runner.ts                   # the Night Shift
 pnpm exec tsx packages/api/src/server.ts                       # API on :8787  (try /v1/which/NVDA)
 ```
 
-Reproduce the science: `pnpm exec tsx packages/nfv/src/study-v2.ts`. Tests: `pnpm test`; contracts: `forge test` in `contracts/` and `contracts-hooks/`.
+Reproduce the science: `pnpm exec tsx packages/nfv/src/study-v2.ts`.
+
+Tests:
+- `pnpm test`: 131 TypeScript tests (calendar, CRPS closed forms vs numerical integration, provenance segment bounds incl. DST/holidays, Merkle commitments, receipts, plus the SDK's 110).
+- `forge test` in `contracts-hooks/`: 71 tests, 7 of them on a BSC mainnet fork against PancakeSwap's live Infinity contracts.
+- `forge test` in `contracts/`: oracle, ForecastBook, credit, with fuzz, invariant and fork tests.
 
 ## Known limits
 
