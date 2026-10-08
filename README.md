@@ -45,7 +45,15 @@ Two findings we didn't expect:
 - **Weekend token prices are only weakly informative.** Echoing them mid-weekend can be *worse* than the stale close.
 - **Company-specific after-hours moves carry into Monday in full** (learned weight 1.19), while market-wide weekend drift is ~55% noise (weight 0.46).
 
-Live, forecasts are committed every round and scored at every open: `/v1/scoreboard`.
+**Live, Oct 8 2026 open** (first reality-scored open: 261 forecasts committed in the pre-open rounds, before 13:30 UTC):
+
+| Forecaster | CRPS | MAE | 90% band coverage |
+|---|---|---|---|
+| Stale oracle (yesterday's close) | 120.8 bps | 177.5 bps | 92.0% |
+| On-chain echo | 61.9 bps | 77.8 bps | 92.0% |
+| **Nightshift NFV** | **61.7 bps** (−49% vs stale) | 78.3 bps | 96.6% |
+
+Every open since is scored automatically: `/v1/scoreboard`, `/v1/results`.
 
 ## Architecture
 
