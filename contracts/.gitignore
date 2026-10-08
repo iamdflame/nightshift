@@ -1,0 +1,10 @@
+# Soldeer-managed dependencies (pinned by soldeer.lock; restore with `forge soldeer install`)
+dependencies/
+
+# Build artifacts
+out/
+cache/
+broadcast/
+
+# Simulated (non-broadcast) deployment outputs from `forge script` dry runs
+deployments/*.dry-run.json
