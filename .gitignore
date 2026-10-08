@@ -17,3 +17,4 @@ contracts/cache/
 contracts/broadcast/
 .DS_Store
 .claude/
+contracts/deployments/*.dry-run.json
