@@ -199,6 +199,9 @@ importers:
       '@nightshift/tape':
         specifier: workspace:*
         version: link:../tape
+      '@nightshift/trade':
+        specifier: workspace:*
+        version: link:../trade
       fastify:
         specifier: ^5.12.5
         version: 5.12.5
@@ -249,6 +252,18 @@ importers:
       '@nightshift/feeds':
         specifier: workspace:*
         version: link:../feeds
+
+  packages/trade:
+    dependencies:
+      '@nightshift/core':
+        specifier: workspace:*
+        version: link:../core
+      '@nightshift/tape':
+        specifier: workspace:*
+        version: link:../tape
+      viem:
+        specifier: ^2.57.3
+        version: 2.57.3(typescript@5.9.3)(zod@4.6.5)
 
 packages:
 

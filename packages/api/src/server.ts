@@ -6,6 +6,7 @@
 import cors from "@fastify/cors";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import Fastify from "fastify";
+import { buildReceipt } from "@nightshift/trade";
 import { buildMcpServer } from "./mcp.ts";
 import { openapi } from "./openapi.ts";
 import { Queries } from "./queries.ts";
@@ -44,6 +45,15 @@ app.get<{ Params: { round: string; forecaster: string; token: string } }>("/v1/r
   return r ?? reply.code(404).send({ error: "forecast not found in that round" });
 });
 app.get("/v1/scoreboard", async () => ({ scoreboard: q.scoreboard() }));
+// Receipt v1: what any BSC tokenized-stock trade cost per real share vs the fair value at that moment.
+app.get<{ Params: { tx: string }; Querystring: { trader?: string } }>("/v1/receipts/:tx", async (req, reply) => {
+  if (!/^0x[0-9a-fA-F]{64}$/.test(req.params.tx)) return reply.code(400).send({ error: "tx must be a 32-byte hex hash" });
+  try {
+    return await buildReceipt(req.params.tx as `0x${string}`, { trader: req.query.trader });
+  } catch (e) {
+    return reply.code(422).send({ error: (e as Error).message.split(/\r?\n/)[0] });
+  }
+});
 app.get("/v1/results", async () => ({ results: q.results(30) }));
 app.get("/v1/study", async () => q.study());
 

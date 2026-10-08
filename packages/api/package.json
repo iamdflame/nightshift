@@ -14,6 +14,7 @@
     "@nightshift/network": "workspace:*",
     "@nightshift/nfv": "workspace:*",
     "@nightshift/tape": "workspace:*",
+    "@nightshift/trade": "workspace:*",
     "fastify": "^5.12.5",
     "zod": "^4.6.5"
   }

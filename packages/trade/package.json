@@ -1,0 +1,15 @@
+{
+  "name": "@nightshift/trade",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Nightshift Trade: verifiable receipts (price per real share vs fair value) for any tokenized-stock swap on BSC; best-execution planning and execution.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@nightshift/core": "workspace:*",
+    "@nightshift/tape": "workspace:*",
+    "viem": "^2.57.3"
+  }
+}
