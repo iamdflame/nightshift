@@ -244,6 +244,12 @@ importers:
         specifier: workspace:*
         version: link:../tape
 
+  packages/sdk:
+    dependencies:
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
+
   packages/tape:
     dependencies:
       '@nightshift/core':
