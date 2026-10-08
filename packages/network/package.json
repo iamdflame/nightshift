@@ -8,6 +8,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@bnbagent/sdk": "^0.6.0",
     "@nightshift/core": "workspace:*",
     "@nightshift/nfv": "workspace:*",
     "@nightshift/tape": "workspace:*",
