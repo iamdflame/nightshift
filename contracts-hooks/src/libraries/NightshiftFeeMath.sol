@@ -146,6 +146,8 @@ library NightshiftFeeMath {
         } else {
             regime = Regime.Uninformed;
         }
+        // casting to 'uint24' is safe because f < maxFee, itself a uint24
+        // forge-lint: disable-next-line(unsafe-typecast)
         fee = f < p.maxFee ? uint24(f) : p.maxFee;
     }
 
@@ -175,6 +177,8 @@ library SafeCastU160 {
 
     function toUint160(uint256 x) internal pure returns (uint160) {
         if (x > type(uint160).max) revert SafeCastU160Overflow(x);
+        // casting to 'uint160' is safe because of the bound check above
+        // forge-lint: disable-next-line(unsafe-typecast)
         return uint160(x);
     }
 }
