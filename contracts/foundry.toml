@@ -1,0 +1,66 @@
+[profile.default]
+src = "src"
+out = "out"
+test = "test"
+script = "script"
+libs = ["dependencies"]
+solc_version = "0.8.33"
+# BSC supports Cancun (Tycho hardfork). Pinned explicitly so a newer solc default (prague/osaka) never
+# emits opcodes the chain does not have.
+evm_version = "cancun"
+optimizer = true
+optimizer_runs = 200
+via_ir = false
+bytecode_hash = "ipfs"
+fs_permissions = [{ access = "read-write", path = "./deployments" }]
+
+[profile.default.fuzz]
+runs = 1000
+seed = "0x6e696768747368696674"
+
+[profile.default.invariant]
+runs = 256
+depth = 128
+fail_on_revert = false
+
+# Heavier campaign: FOUNDRY_PROFILE=deep forge test
+[profile.deep.fuzz]
+runs = 20000
+
+[profile.deep.invariant]
+runs = 1024
+depth = 256
+fail_on_revert = false
+
+[lint]
+# Excluded by design, everything else stays on:
+#  - block-timestamp: staleness, commit deadlines and interest accrual are time-based by definition; validator drift
+#    of a few seconds is negligible next to staleness budgets of minutes to hours.
+#  - require-revert-in-loop: report batches and multi-collateral risk checks are deliberately atomic; reverting with
+#    an error that names the offending token is the intended behaviour.
+#  - reentrancy-events: every state-changing entry point of the credit market is `nonReentrant`, and the external calls
+#    that precede its events are STATICCALLs (oracle reads, token metadata). The lint cannot see either fact and fires
+#    on every event that follows an oracle read.
+exclude_lints = ["block-timestamp", "require-revert-in-loop", "reentrancy-events"]
+# Lints target production code; tests and scripts use cheatcode patterns (vm.warp, pranks) the rules misread.
+ignore = ["test/**/*.sol", "script/**/*.sol"]
+
+[fmt]
+line_length = 120
+tab_width = 4
+bracket_spacing = false
+int_types = "long"
+quote_style = "double"
+number_underscore = "thousands"
+sort_imports = true
+
+[dependencies]
+forge-std = "1.17.0"
+"@openzeppelin-contracts" = "5.7.0"
+
+[soldeer]
+remappings_generate = true
+remappings_regenerate = false
+remappings_version = false
+remappings_location = "txt"
+recursive_deps = false
