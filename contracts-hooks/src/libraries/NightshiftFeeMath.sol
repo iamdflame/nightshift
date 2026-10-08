@@ -117,7 +117,10 @@ library NightshiftFeeMath {
         returns (bool ok, Regime regime)
     {
         // Feed invariants: 0 < lower <= fairValue <= upper, anchorTime >= updatedAt, updatedAt <= now.
-        if (r.lower == 0 || r.lower > r.fairValue || r.fairValue > r.upper || r.updatedAt > nowTs || r.anchorTime < r.updatedAt) {
+        if (
+            r.lower == 0 || r.lower > r.fairValue || r.fairValue > r.upper || r.updatedAt > nowTs
+                || r.anchorTime < r.updatedAt
+        ) {
             return (false, Regime.InvalidReport);
         }
         if (r.flags & PROTECT_FLAGS != 0) return (false, Regime.Flagged);

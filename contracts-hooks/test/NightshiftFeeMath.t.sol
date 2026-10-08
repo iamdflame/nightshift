@@ -319,7 +319,11 @@ contract NightshiftFeeMathTest is Test {
     // fuzz
     // ------------------------------------------------------------------------------------------------------------
 
-    function _boundParams(NightshiftFeeMath.FeeParams memory p) internal pure returns (NightshiftFeeMath.FeeParams memory) {
+    function _boundParams(NightshiftFeeMath.FeeParams memory p)
+        internal
+        pure
+        returns (NightshiftFeeMath.FeeParams memory)
+    {
         p.maxFee = uint24(bound(p.maxFee, 0, 500_000));
         p.minFee = uint24(bound(p.minFee, 0, p.maxFee));
         p.informedSlope = uint24(bound(p.informedSlope, 0, 1_000_000));
@@ -580,9 +584,8 @@ contract NightshiftFeeMathTest is Test {
         // zeroForOne flag that buys (or sells) the stock under each ordering
         bool zfo0 = !buying; // stock = currency0: buying means the quote (currency1) goes in
         bool zfo1 = buying; // stock = currency1: buying means the quote (currency0) goes in
-        (uint24 f0,) = NightshiftFeeMath.computeFee(
-            _params(), r, p0, NightshiftFeeMath.isBuyingStock(zfo0, true), block.timestamp
-        );
+        (uint24 f0,) =
+            NightshiftFeeMath.computeFee(_params(), r, p0, NightshiftFeeMath.isBuyingStock(zfo0, true), block.timestamp);
         (uint24 f1,) = NightshiftFeeMath.computeFee(
             _params(), r, p1, NightshiftFeeMath.isBuyingStock(zfo1, false), block.timestamp
         );

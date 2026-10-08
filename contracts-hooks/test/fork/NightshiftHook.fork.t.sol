@@ -199,9 +199,8 @@ contract NightshiftHookForkTest is SwapFeeAssertions {
         (lpFee, regime,,) = hook.quoteFee(key, zeroForOne);
         IQuoter.QuoteExactSingleParams memory q =
             IQuoter.QuoteExactSingleParams({poolKey: key, zeroForOne: zeroForOne, exactAmount: amount, hookData: ""});
-        (uint256 quoted,) = exactIn
-            ? ICLQuoter(CL_QUOTER).quoteExactInputSingle(q)
-            : ICLQuoter(CL_QUOTER).quoteExactOutputSingle(q);
+        (uint256 quoted,) =
+            exactIn ? ICLQuoter(CL_QUOTER).quoteExactInputSingle(q) : ICLQuoter(CL_QUOTER).quoteExactOutputSingle(q);
 
         PoolState memory pre = _poolState(pm, key);
         vm.recordLogs();
@@ -258,8 +257,7 @@ contract NightshiftHookForkTest is SwapFeeAssertions {
             assertEq(uint8(r1), uint8(NightshiftFeeMath.Regime.Informed));
             assertGt(c1.lpFee, (5000e18 * 16_000) / 1e6); // > $80 of the $5,000 trade stays with LPs
 
-            (uint24 sellFee, NightshiftFeeMath.Regime r2,) =
-                _quoteSwapCheck(keys[i], _dir(keys[i], false), true, 20e18);
+            (uint24 sellFee, NightshiftFeeMath.Regime r2,) = _quoteSwapCheck(keys[i], _dir(keys[i], false), true, 20e18);
             assertEq(sellFee, 3466);
             assertEq(uint8(r2), uint8(NightshiftFeeMath.Regime.Uninformed));
         }
@@ -362,8 +360,8 @@ contract NightshiftHookForkTest is SwapFeeAssertions {
         }
         int256[3] memory lpPnl;
         for (uint256 i; i < 3; ++i) {
-            int256 arbProfit = int256(IERC20(NVDAB).balanceOf(arbs[i]) * 236)
-                - int256(1_000_000e18 - IERC20(USDT).balanceOf(arbs[i]));
+            int256 arbProfit =
+                int256(IERC20(NVDAB).balanceOf(arbs[i]) * 236) - int256(1_000_000e18 - IERC20(USDT).balanceOf(arbs[i]));
             lpPnl[i] = -arbProfit - int256(protocolFees[i]);
             (uint160 sqrtP,,,) = pm.getSlot0(keys[i].toId());
             emit log_string(names[i]);

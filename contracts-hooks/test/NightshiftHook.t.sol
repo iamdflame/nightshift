@@ -162,7 +162,11 @@ contract NightshiftHookTest is SwapFeeAssertions {
         );
     }
 
-    function _freshKey(address c0, address c1, uint24 fee, bytes32 parameters) internal view returns (PoolKey memory k) {
+    function _freshKey(address c0, address c1, uint24 fee, bytes32 parameters)
+        internal
+        view
+        returns (PoolKey memory k)
+    {
         k = _key(c0, c1);
         k.fee = fee;
         k.parameters = parameters;
@@ -510,7 +514,9 @@ contract NightshiftHookTest is SwapFeeAssertions {
         hook.configurePool(_freshKey(STOCK_LO, QUOTE, 500, params), true, oracle, p);
 
         vm.expectRevert(abi.encodeWithSelector(NightshiftHook.WrongHooksBitmap.selector, uint16(0x40)));
-        hook.configurePool(_freshKey(STOCK_LO, QUOTE, LPFeeLibrary.DYNAMIC_FEE_FLAG, bytes32(uint256(0x10040))), true, oracle, p);
+        hook.configurePool(
+            _freshKey(STOCK_LO, QUOTE, LPFeeLibrary.DYNAMIC_FEE_FLAG, bytes32(uint256(0x10040))), true, oracle, p
+        );
 
         vm.expectRevert(abi.encodeWithSelector(NightshiftHook.PoolAlreadyConfigured.selector, keyLo.toId()));
         hook.configurePool(keyLo, true, oracle, p);

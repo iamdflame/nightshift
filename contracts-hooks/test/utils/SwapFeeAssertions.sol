@@ -97,8 +97,9 @@ abstract contract SwapFeeAssertions is Test {
             uint256 growth =
                 zeroForOne ? post.feeGrowth0X128 - pre.feeGrowth0X128 : post.feeGrowth1X128 - pre.feeGrowth1X128;
             c.lpFee = Math.mulDiv(growth, pre.liquidity, 1 << 128);
-            c.protocolCut =
-                zeroForOne ? post.protocolAccrued0 - pre.protocolAccrued0 : post.protocolAccrued1 - pre.protocolAccrued1;
+            c.protocolCut = zeroForOne
+                ? post.protocolAccrued0 - pre.protocolAccrued0
+                : post.protocolAccrued1 - pre.protocolAccrued1;
         }
         assertApproxEqAbs(c.lpFee + c.protocolCut, c.realizedFee, 10, "fee not credited");
         uint256 pf = zeroForOne ? pre.protocolFee & 0xfff : pre.protocolFee >> 12;

@@ -58,7 +58,8 @@ contract NightshiftHook is ICLHooks, Ownable2Step {
     uint24 public constant OVERRIDE_FEE_FLAG = 0x400000;
 
     /// @notice Callbacks this hook registers: beforeInitialize (bit 0) and beforeSwap (bit 6) = 0x41.
-    uint16 public constant HOOKS_BITMAP = (uint16(1) << HOOKS_BEFORE_INITIALIZE_OFFSET) | (uint16(1) << HOOKS_BEFORE_SWAP_OFFSET);
+    uint16 public constant HOOKS_BITMAP =
+        (uint16(1) << HOOKS_BEFORE_INITIALIZE_OFFSET) | (uint16(1) << HOOKS_BEFORE_SWAP_OFFSET);
 
     /// @notice Hard cap on maxFee: 50%. Far below the CL limit (100%, where exact-output swaps revert).
     uint24 public constant MAX_FEE_CAP = 500_000;
@@ -189,11 +190,12 @@ contract NightshiftHook is ICLHooks, Ownable2Step {
     }
 
     /// @inheritdoc ICLHooks
-    function beforeAddLiquidity(address, PoolKey calldata, ICLPoolManager.ModifyLiquidityParams calldata, bytes calldata)
-        external
-        pure
-        returns (bytes4)
-    {
+    function beforeAddLiquidity(
+        address,
+        PoolKey calldata,
+        ICLPoolManager.ModifyLiquidityParams calldata,
+        bytes calldata
+    ) external pure returns (bytes4) {
         revert HookNotImplemented();
     }
 
@@ -453,7 +455,8 @@ contract NightshiftHook is ICLHooks, Ownable2Step {
         if (d > MAX_TOKEN_DECIMALS) revert UnsupportedDecimals(token, d);
     }
 
-    function _checkOracle(INightshiftOracle oracle) internal view {
+    /// @dev pure because the spec declares decimals() pure; it is still a STATICCALL to the oracle.
+    function _checkOracle(INightshiftOracle oracle) internal pure {
         if (address(oracle) == address(0)) revert ZeroOracle();
         uint8 d = oracle.decimals();
         if (d != ORACLE_DECIMALS) revert OracleDecimalsMismatch(d);
