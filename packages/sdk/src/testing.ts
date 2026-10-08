@@ -7,7 +7,7 @@ export interface RecordedRequest {
   method: string;
   headers: Record<string, string>;
   body: string | undefined;
-  redirect: RequestRedirect | undefined;
+  redirect: RequestInit["redirect"];
 }
 
 export type Scripted = Response | Error | ((req: RecordedRequest, signal?: AbortSignal | null) => Response | Error | Promise<Response | Error>);
