@@ -1,0 +1,6 @@
+out/
+cache/
+broadcast/
+.env
+# Upstream clones live here while developing; the pinned, pruned copy is vendored in a dedicated commit.
+lib/

@@ -1,0 +1,35 @@
+# NightshiftHook: PancakeSwap Infinity CL hook (BSC). See docs/hook.md.
+[profile.default]
+src = "src"
+test = "test"
+script = "script"
+out = "out"
+libs = ["lib"]
+# PancakeSwap Infinity core is pinned to solc 0.8.26 / cancun (BSC supports Cancun opcodes).
+solc_version = "0.8.26"
+evm_version = "cancun"
+via_ir = true
+optimizer = true
+optimizer_runs = 25_666
+bytecode_hash = "none"
+auto_detect_remappings = false
+# The deploy script reads nothing from disk; tests need no file access.
+fs_permissions = []
+
+[fuzz]
+runs = 1024
+max_test_rejects = 262144
+
+[profile.ci.fuzz]
+runs = 10000
+
+[rpc_endpoints]
+bsc = "${BSC_RPC_URL}"
+
+[fmt]
+line_length = 120
+tab_width = 4
+bracket_spacing = false
+int_types = "long"
+quote_style = "double"
+number_underscore = "thousands"
