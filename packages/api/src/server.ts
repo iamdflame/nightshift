@@ -25,6 +25,10 @@ app.get("/", async () => ({
 }));
 app.get("/openapi.json", async () => openapi);
 app.get("/v1/status", async () => q.status());
+app.get("/v1/health", async (_req, reply) => {
+  const h = q.health();
+  return reply.code(h.ok ? 200 : 503).send(h);
+});
 app.get("/v1/fair-value", async () => {
   const rows = q.consensus();
   return { round: q.latestRound(), count: rows.length, data: rows.map((c) => q.formatConsensus(c)) };

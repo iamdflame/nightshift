@@ -49,6 +49,29 @@ export class Queries {
     };
   }
 
+  /**
+   * Component health: is the 24/7 tape fresh, is the Night Shift producing rounds, are opens being
+   * scored. Used by the container healthcheck and anyone watching the deployment.
+   */
+  health() {
+    const now = Date.now();
+    const age = (sql: string) => {
+      const r = this.db.prepare(sql).get() as { t: number | null };
+      return r.t ? Math.round((now - r.t) / 1000) : null;
+    };
+    const tapeLag = age(`SELECT MAX(ts) t FROM cex_book`);
+    const roundAge = age(`SELECT MAX(ts) t FROM rounds`);
+    const lastScore = age(`SELECT MAX(scored_at) t FROM scores`);
+    const refAge = age(`SELECT MAX(ts) t FROM ref_quote`);
+    const checks = {
+      tape: { ok: tapeLag != null && tapeLag < 120, lagSeconds: tapeLag },
+      reference: { ok: refAge != null && refAge < 3 * 3600, ageSeconds: refAge },
+      rounds: { ok: roundAge != null && roundAge < 45 * 60, ageSeconds: roundAge },
+      scoring: { ok: true, lastScoredSecondsAgo: lastScore },
+    };
+    return { ok: Object.values(checks).every((c) => c.ok), checks, session: sessionAt(now) };
+  }
+
   latestRound(): { round: number; ts: number; session: string; state: string; anchor_time: number; n_tokens: number } | null {
     return (this.db.prepare(`SELECT * FROM rounds ORDER BY round DESC LIMIT 1`).get() as never) ?? null;
   }
