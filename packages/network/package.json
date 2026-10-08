@@ -11,7 +11,9 @@
     "@bnbagent/sdk": "^0.6.0",
     "@nightshift/core": "workspace:*",
     "@nightshift/nfv": "workspace:*",
+    "@nightshift/sdk": "workspace:*",
     "@nightshift/tape": "workspace:*",
+    "@nightshift/trade": "workspace:*",
     "viem": "^2.57.3"
   }
 }

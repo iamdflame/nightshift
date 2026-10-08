@@ -228,9 +228,15 @@ importers:
       '@nightshift/nfv':
         specifier: workspace:*
         version: link:../nfv
+      '@nightshift/sdk':
+        specifier: workspace:*
+        version: link:../sdk
       '@nightshift/tape':
         specifier: workspace:*
         version: link:../tape
+      '@nightshift/trade':
+        specifier: workspace:*
+        version: link:../trade
       viem:
         specifier: ^2.57.3
         version: 2.57.3(typescript@5.9.3)(zod@4.6.5)
@@ -264,9 +270,15 @@ importers:
 
   packages/trade:
     dependencies:
+      '@bnbagent/sdk':
+        specifier: ^0.6.0
+        version: 0.6.0(typescript@5.9.3)(zod@4.6.5)
       '@nightshift/core':
         specifier: workspace:*
         version: link:../core
+      '@nightshift/sdk':
+        specifier: workspace:*
+        version: link:../sdk
       '@nightshift/tape':
         specifier: workspace:*
         version: link:../tape
