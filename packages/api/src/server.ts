@@ -38,6 +38,7 @@ app.get<{ Params: { ticker: string } }>("/v1/which/:ticker", async (req, reply) 
   return r ?? reply.code(404).send({ error: `unknown ticker ${req.params.ticker}` });
 });
 app.get("/v1/radar", async () => q.radar());
+app.get("/v1/identities", async () => q.identities());
 app.get<{ Querystring: { ticker?: string } }>("/v1/instruments", async (req) => q.instruments(req.query.ticker));
 app.get<{ Querystring: { limit?: string } }>("/v1/rounds", async (req) => q.rounds(Math.min(500, Number(req.query.limit ?? 50))));
 app.get<{ Params: { round: string; forecaster: string; token: string } }>("/v1/rounds/:round/proof/:forecaster/:token", async (req, reply) => {

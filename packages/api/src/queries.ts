@@ -134,6 +134,45 @@ export class Queries {
     };
   }
 
+  /**
+   * The market checking itself: leveraged/inverse ETF tokens must move ≈ L × their base since the
+   * close. Every pair gives an independent read of the same underlying move; disagreement is noise
+   * (or an opportunity) the 24/7 market hasn't arbitraged away.
+   */
+  identities() {
+    const PAIRS: { lev: string; base: string; L: number }[] = [
+      { lev: "SOXL", base: "SMH", L: 3 },
+      { lev: "SOXS", base: "SMH", L: -3 },
+      { lev: "TQQQ", base: "QQQ", L: 3 },
+      { lev: "SQQQ", base: "QQQ", L: -3 },
+      { lev: "KORU", base: "EWY", L: 3 },
+      { lev: "MUU", base: "MU", L: 2 },
+      { lev: "MVLL", base: "MRVL", L: 2 },
+      { lev: "INTW", base: "INTC", L: 2 },
+      { lev: "SNXX", base: "SNDK", L: 2 },
+    ];
+    const r = this.latestRound();
+    if (!r) return { round: null, pairs: [] };
+    const moves = new Map(
+      (this.db.prepare(`SELECT ticker, move FROM forecasts WHERE round = ? AND forecaster = 'nfv'`).all(r.round) as { ticker: string; move: number }[]).map((x) => [x.ticker, x.move]),
+    );
+    const pairs = PAIRS.filter((p) => moves.has(p.lev) && moves.has(p.base)).map((p) => {
+      const lev = moves.get(p.lev)!;
+      const base = moves.get(p.base)!;
+      const implied = lev / p.L;
+      return {
+        leveraged: `${p.lev}B`,
+        base: `${p.base}B`,
+        leverage: p.L,
+        leveragedMoveBps: num(lev * 1e4, 1),
+        baseMoveBps: num(base * 1e4, 1),
+        impliedBaseMoveBps: num(implied * 1e4, 1),
+        disagreementBps: num((implied - base) * 1e4, 1),
+      };
+    });
+    return { round: r, note: "Since the last official close. Daily-reset leveraged ETFs should move ≈ leverage × base over one gap.", pairs };
+  }
+
   /** "Which NVIDIA?" — every issuer's token for an underlying, priced per real share, with venues. */
   which(ticker: string) {
     const T = ticker.toUpperCase();
