@@ -1,0 +1,25 @@
+{
+  "name": "nightshift",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Nightshift: a network of AI agents that prices tokenized stocks while Wall Street sleeps, and the products that 24/7 price unlocks on BNB Chain.",
+  "type": "module",
+  "license": "MIT",
+  "packageManager": "pnpm@12.8.1",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "collect": "tsx packages/tape/src/main.ts",
+    "backfill": "tsx packages/tape/src/backfill.ts",
+    "typecheck": "tsc -b --pretty",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  }
+}
