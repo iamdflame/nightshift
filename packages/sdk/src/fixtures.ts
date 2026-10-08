@@ -65,7 +65,10 @@ export const KEPT_HEADERS = [
   "x-amzn-waf-action",
 ] as const;
 
-const SENSITIVE = /^(signature|usersignature|signedtransaction|token|apikey|api_key|secret|secretkey|privatekey|mnemonic|seed|authorization|x-oc-sign|x-oc-apikey)$/i;
+// The B402 guide: "Log request IDs and transaction hashes, but never signatures, API secrets, or full
+// authorization payloads" — so x402 `authorization` / `permit2Authorization` objects are redacted too.
+const SENSITIVE =
+  /^(signature|usersignature|signedtransaction|token|apikey|api_key|secret|secretkey|privatekey|mnemonic|seed|authorization|permit2authorization|x-oc-sign|x-oc-apikey)$/i;
 
 export function redactJson(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(redactJson);
