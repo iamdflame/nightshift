@@ -6,11 +6,30 @@
  */
 import { sessionAt } from "@nightshift/core";
 import { LiveEngine } from "@nightshift/nfv";
+import { commitPending, deployments, postConsensus } from "./chain/publish.ts";
+import { loadEnv } from "./env.ts";
 import { produceRound } from "./rounds.ts";
 import { scorePending, scoreboard } from "./scorer.ts";
 import { openNetworkDb } from "./store.ts";
 
+loadEnv();
 const ROUND_MINUTES = Number(process.env.NIGHTSHIFT_ROUND_MINUTES ?? 30);
+const CHAIN = process.env.NIGHTSHIFT_CHAIN === "1";
+let publishing = false;
+
+/** Publish on-chain without ever blocking or crashing the forecasting loop. */
+async function publish(): Promise<void> {
+  if (!CHAIN || publishing || !deployments()) return;
+  publishing = true;
+  try {
+    await commitPending(db);
+    await postConsensus(db);
+  } catch (e) {
+    log(`publish failed: ${(e as Error).message}`);
+  } finally {
+    publishing = false;
+  }
+}
 const db = openNetworkDb();
 const engine = new LiveEngine();
 const log = (msg: string) => console.log(`${new Date().toISOString()} [night-shift] ${msg}`);
@@ -27,6 +46,7 @@ function tick(): void {
       if (r) {
         const w = Object.entries(r.weights).map(([k, v]) => `${k}=${v.toFixed(2)}`).join(" ");
         log(`round ${r.round} (${r.session}/${r.state}) ${r.tokens} tokens; weights ${w}; roots ${Object.entries(r.roots).map(([k, v]) => `${k}:${v.slice(0, 10)}`).join(" ")}`);
+        void publish();
       } else log(`round skipped: no data (${sessionAt(now)})`);
     } catch (e) {
       log(`round failed: ${(e as Error).stack ?? e}`);
@@ -41,7 +61,7 @@ function tick(): void {
   }
 }
 
-log(`starting; round every ${ROUND_MINUTES} min; session=${sessionAt(Date.now())}`);
+log(`starting; round every ${ROUND_MINUTES} min; session=${sessionAt(Date.now())}; on-chain publishing ${CHAIN ? (deployments() ? "ON" : "waiting for deployments/56.json") : "off (set NIGHTSHIFT_CHAIN=1)"}`);
 const board = scoreboard(db);
 if (board.length) console.table(board);
 tick();
