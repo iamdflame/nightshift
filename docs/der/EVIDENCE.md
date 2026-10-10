@@ -59,6 +59,12 @@
 - `@bnbagent/sdk` 0.6.0: the ERC-8183 facade `createJob` has no `evaluator` parameter. It always routes through BNB's EvaluatorRouter and OptimisticPolicy; a custom evaluator needs the lower-level `CommerceClient`. This is not explained in the README.
 - The ERC-8183 payment token on BSC mainnet is **U (United Stables)**, `0xcE24439F2D9C6a2289F741120FE202248B666666`. It is fetched at runtime and not stated in the docs pages.
 - The ERC-8004 `AgentIdentity` registry on BSC: `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` (verified on-chain).
+- **Agentic Wallet setup log (Oct 10, UTC):**
+  - `npx skills add …/binance-agentic-wallet` installed the skill (v1.12.0). The installer's own security panel flagged it: Gen "Safe", Socket "1 alert", Snyk "Med Risk", with no detail shown in the terminal.
+  - The skill auto-installs nothing until first use. `baw` had to be installed separately (`npm install -g @binance/agentic-wallet@1.10.0`), and npm warned that `@github/keytar`'s install script was not allowed.
+  - The first sign-in code expired (5-minute TTL, `AUTH_REJECTED 10002004`) before it was scanned. The second attempt (23:53 UTC) succeeded.
+  - Defaults after sign-in: `dailyLimit` **$50,000**, `abnormalTxnHandling` AutoReject, `tradeAllTokens` false, Developer Mode off, x402 limit $20/day, session 48 h.
+  - One EVM address is shared by BSC, Ethereum, Base, Arbitrum, Polygon and Robinhood Chain.
 - **Your own experience:** QR sign-in, limits setup, developer mode, `baw` commands, the skill install. Write what worked and what didn't.
 
 ## 6. Redesign suggestions and requested capabilities (seed ideas: rewrite in your words)
