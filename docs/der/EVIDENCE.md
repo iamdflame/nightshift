@@ -29,6 +29,13 @@
 
 - **Rate limits:** 1200/60 s per key and IP, 6000/60 s per user, 5 RPS per endpoint by default. HTTP 429 comes with `Retry-After`.
 - **Latency and error rates per endpoint:** from Nightshift's telemetry (`dx_calls`) once the key is configured. `pnpm exec tsx packages/sdk/scripts/smoke.ts` prints a latency table.
+- **First live authenticated run: Sat Oct 10 2026, 18:28 UTC.** 9 of 9 endpoints returned 200 on the first try, with no retries, no signature errors, and a 34 ms clock offset vs the server.
+  - Latency: 467–493 ms for most calls; `rwa/platforms` 953 ms; `pre-transaction/gas-price` 1058 ms. Every response carries a `requestId`.
+- **Live responses vs the documented schemas** (the SDK validates every response):
+  - `market/rwa/tokens`: `statusInfo.marketStatus` came back `null` on every row checked, and `marketCap` was `null` on some rows. The docs type both as strings.
+  - `market/rwa/underlying-market` (NVDAB, Saturday): `marketStatus`, `referencePrice`, `avgDailyVolume1Y`, `totalShares` and `turnoverRate` were all `null`. So the reference price is missing exactly when the market is closed, when you'd most want it.
+  - `aggregator/quote`: each `dexRouterList[].fromToken`/`toToken` carries 4 undocumented fields: `decimal`, `isHoneyPot`, `taxRate`, `tokenUnitPrice`.
+  - The quote vendor for USDT→NVDAB on Saturday was `LiquidMesh`.
 - **Public RPC quirks on BSC** (relevant to anyone verifying trades):
   - `bsc-rpc.publicnode.com` returned "Invalid parameters" for `eth_getTransactionReceipt` on fresh transactions that `bsc-dataseed.bnbchain.org` served fine.
   - `eth_getLogs` over 1,500 blocks failed on bnbchain dataseed with `-32005 limit exceeded`; 100–200 block windows worked.
