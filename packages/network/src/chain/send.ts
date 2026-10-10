@@ -19,15 +19,23 @@ export interface SentTx {
 }
 
 export function sendContractTx(wallet: EVMWalletProvider, to: `0x${string}`, abi: Abi, functionName: string, args: readonly unknown[]): Promise<SentTx> {
+  return sendTx(wallet, to, encodeFunctionData({ abi, functionName, args } as never), 0n);
+}
+
+/** Plain BNB transfer (gas top-ups from the treasury). */
+export function sendValueTx(wallet: EVMWalletProvider, to: `0x${string}`, value: bigint): Promise<SentTx> {
+  return sendTx(wallet, to, "0x", value);
+}
+
+function sendTx(wallet: EVMWalletProvider, to: `0x${string}`, data: Hex, value: bigint): Promise<SentTx> {
   const run = async (): Promise<SentTx> => {
     const from = wallet.address;
-    const data = encodeFunctionData({ abi, functionName, args } as never);
     const [nonce, gasPrice, estimate] = await Promise.all([
       publicClient.getTransactionCount({ address: from, blockTag: "pending" }),
       publicClient.getGasPrice(),
-      publicClient.estimateGas({ account: from, to, data }),
+      publicClient.estimateGas({ account: from, to, data, value }),
     ]);
-    const signed = await wallet.signTransaction({ to, data, value: 0n, nonce, gasPrice, gas: (estimate * 13n) / 10n, chainId: bsc.id, type: "legacy" });
+    const signed = await wallet.signTransaction({ to, data, value, nonce, gasPrice, gas: (estimate * 13n) / 10n, chainId: bsc.id, type: "legacy" });
     const hash = await publicClient.sendRawTransaction({ serializedTransaction: signed.rawTransaction });
     const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 90_000 });
     return { hash, status: receipt.status, gasUsed: receipt.gasUsed, blockNumber: receipt.blockNumber };
