@@ -40,6 +40,9 @@
   - `bsc-rpc.publicnode.com` returned "Invalid parameters" for `eth_getTransactionReceipt` on fresh transactions that `bsc-dataseed.bnbchain.org` served fine.
   - `eth_getLogs` over 1,500 blocks failed on bnbchain dataseed with `-32005 limit exceeded`; 100–200 block windows worked.
 
+- **RWA `price` with many tokens** (Oct 11, 00:33 UTC): `GET /api/v1/dex/market/rwa/price` with 165 `tokenContractAddresses` in the query string returned **HTTP 414 (URI Too Long) with no API envelope**, so our client could only report "HTTP 414 without a recognizable API envelope". The docs state no batch limit; batches of 20 work. Our collector logged this error every 30 s for hours before we noticed.
+- **`referencePrice` on a weekend** (Sat Oct 10 – Sun Oct 11 UTC, 330 readings of 165 bStock and Ondo tokens): `referencePrice` was the token's own `tokenPrice` divided by its shares-per-token ratio in **330 of 330** readings (identical to `tokenPrice` in the 204 where the ratio is 1). With the US market closed, the "reference" is derived from the token itself, not from the underlying stock, and the docs do not say so.
+
 ## 4. Tokenized-stock specifics (measured by Nightshift)
 
 | Topic | Measurement |

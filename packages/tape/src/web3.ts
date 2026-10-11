@@ -49,7 +49,13 @@ export class Web3Feeds {
 
   async rwaPrices(tokens: Instrument[]): Promise<number> {
     const session = sessionAt(Date.now());
-    const rows = await this.client.rwa.price({ binanceChainId: BSC, tokenContractAddresses: tokens.map((t) => t.address) });
+    // The addresses travel in the query string: ~165 of them returned HTTP 414 (URI Too Long) with no
+    // API envelope, and the docs state no batch limit. 20 per call keeps every URL under ~1 KB.
+    const rows: unknown[] = [];
+    for (let i = 0; i < tokens.length; i += 20) {
+      const chunk = tokens.slice(i, i + 20).map((t) => t.address);
+      rows.push(...((await this.client.rwa.price({ binanceChainId: BSC, tokenContractAddresses: chunk })) as unknown[]));
+    }
     const ins = this.tape.db.prepare(`INSERT INTO rwa_price VALUES (?,?,?,?,?,?)`);
     const now = Date.now();
     this.tape.tx(() => {
