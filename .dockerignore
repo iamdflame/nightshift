@@ -9,3 +9,6 @@ contracts/cache
 contracts-hooks/out
 contracts-hooks/cache
 research/out
+.git
+.apex
+deploy/railway/railway.env
