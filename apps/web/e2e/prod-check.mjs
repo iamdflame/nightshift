@@ -1,0 +1,21 @@
+// Prod smoke: home hands over from the static hero, story mounts on scroll, Verify proves a real seal on BSC.
+import { chromium } from "playwright";
+const base = process.argv[2] ?? "https://nightshift-production-f4e3.up.railway.app";
+const b = await chromium.launch({ channel: "chrome" });
+const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+const p = await ctx.newPage();
+const errs = [];
+p.on("pageerror", (e) => errs.push(String(e)));
+p.on("console", (m) => m.type() === "error" && errs.push(m.text()));
+await p.goto(base + "/", { waitUntil: "networkidle" });
+await p.waitForTimeout(2500);
+const home = { header: await p.locator("header").count(), live: await p.getByText("NVIDIA, as NVDAB").count(), shellLeft: await p.locator("#ns-shell").count() };
+await p.mouse.wheel(0, 400);
+await p.evaluate(() => window.scrollBy(0, 400));
+await p.waitForTimeout(2500);
+home.weekend = await p.locator('[aria-labelledby="weekend-title"]').count();
+await p.goto(base + "/verify", { waitUntil: "networkidle" });
+await p.getByRole("button", { name: "Verify on BNB Chain" }).click();
+const verdict = await p.getByText(/verified on BNB Chain|returned true|rejected|failed/i).first().textContent({ timeout: 45_000 }).catch(() => "no verdict");
+console.log(JSON.stringify({ home, verdict: verdict?.slice(0, 140), errs }));
+await b.close();
