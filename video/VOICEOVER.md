@@ -55,9 +55,11 @@ Ten short scenes, about 500 words, about 3:20 spoken. Generate **one file per sc
 
 > And contracts read it. At ten p.m. on a Saturday, we borrowed against NVIDIA on mainnet, with the collateral valued at the low edge of the range. The same price ships as Chainlink-compatible feeds, and as an adapter Venus can plug straight in.
 
-## S8 · Built on Binance Web3 (~19 s, picture: the live API counter, the stack page)
+## S8 · Built on Binance Web3 (~7 s, picture: the live API counter, the stack page)
 
-> Every price here starts as a Binance Web3 API call... more than ten thousand of them a day. R-W-A Data for every stock. A quote ladder that probes real liquidity around the clock. M-E-V protected broadcasts. And b-four-oh-two payments. Every call, and every error, is logged live.
+> Every call, and every error, is logged live.
+
+(The final cut keeps only this last sentence of the recorded take, after a 2.5 s beat where the call counter rolls. The rest of the take claimed every price starts as a Web3 API call and a round-the-clock quote ladder; the oracle prices from Binance spot books and BSC pools, and Binance refuses tokenized-stock data to our EU West server. The full take is kept in `public/vo-original/s8.mp3`.)
 
 ## S9 · Any agent can use it (~17 s, picture: the Agentic Wallet terminal, the receipt)
 

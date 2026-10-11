@@ -142,6 +142,9 @@ export default function Stock() {
               </div>
             ))}
           </div>
+          <p className="max-w-[46ch] text-[11.5px] text-moon-3 lg:justify-self-end lg:text-right">
+            Weights ∝ exp(−(CRPS − best CRPS) / 3 bps), from each forecaster's backtest CRPS in this information state until it has 200 live scores there.
+          </p>
         </div>
       </header>
 
@@ -194,7 +197,15 @@ export default function Stock() {
               <h2 id="which-title" className="font-sans text-[18px] font-medium tracking-normal">
                 Which {which.ticker}?
               </h2>
-              <p className="mt-1 text-[13.5px] text-moon-3">The same company from different issuers, per real share.</p>
+              <p className="mt-1 text-[13.5px] text-moon-3">
+                The same company from different issuers, per real share
+                {which.fairValuePerShare != null && (
+                  <>
+                    , against Nightshift's fair value per real share (<span className="num">{usd(which.fairValuePerShare)}</span>: the fair value above divided by the token's share ratio)
+                  </>
+                )}
+                .
+              </p>
               <ul className="mt-4 grid gap-2">
                 {which.tokens
                   .filter((t) => t.pricePerShare != null)

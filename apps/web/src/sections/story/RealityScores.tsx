@@ -139,7 +139,7 @@ function LiveOpens() {
             )}
             {x.total > 0 && (
               <p className="mt-3 border-t border-rule pt-3 text-[13px] text-moon-3">
-                At the bell, <span className="num text-moon-1">{x.inBand}</span> of <span className="num text-moon-1">{x.total}</span> stocks opened inside NFV's 90% band.
+                At the bell, <span className="num text-moon-1">{x.inBand}</span> of <span className="num text-moon-1">{x.total}</span> stocks opened inside the 90% band of NFV's last forecast before it.
               </p>
             )}
           </div>

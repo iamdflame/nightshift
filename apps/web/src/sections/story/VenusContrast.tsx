@@ -154,8 +154,9 @@ export function VenusContrast({ className = "" }: { className?: string }) {
                     90% band <span className="num text-moon-1">{usd(a.ours.lower)} – {usd(a.ours.upper)}</span>.
                   </>,
                   <>
-                    At the band's low edge, the NVDAB on Venus would count as <span className="num text-moon-1">{usd(atLow, 0)}</span> instead of{" "}
-                    <span className="num">{usd(atVenus, 0)}</span>.
+                    Valued at the band's low edge for new weekend borrows, the NVDAB on Venus would support <span className="num text-moon-1">{usd((atLow ?? 0) * a.venus.cf, 0)}</span> of
+                    borrowing instead of <span className="num">{usd((atVenus ?? 0) * a.venus.cf, 0)}</span> at its {pct(a.venus.cf, 0)} collateral factor. A weekend borrow throttle, never a
+                    liquidation price.
                   </>,
                 ]
               : ["Reading BNB Chain…"]

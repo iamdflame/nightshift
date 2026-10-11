@@ -563,79 +563,25 @@
   ]
  },
  "s8": {
-  "dur": 22.047,
-  "lufsIn": -24.11,
-  "speechStart": 0,
-  "speechEnd": 22.047,
+  "dur": 5.982,
+  "lufsIn": -25.14,
+  "speechStart": 2.722,
+  "speechEnd": 5.982,
   "chunks": [
    {
-    "text": "Every price here starts as a Binance Web3 API call…",
-    "start": 0,
-    "end": 3.553
-   },
-   {
-    "text": "more than 10,000 of them a day.",
-    "start": 4.134,
-    "end": 6.077
-   },
-   {
-    "text": "RWA Data for every stock.",
-    "start": 6.651,
-    "end": 9.417
-   },
-   {
-    "text": "A quote ladder that probes real liquidity around the clock.",
-    "start": 9.857,
-    "end": 13.022
-   },
-   {
-    "text": "MEV protected broadcasts.",
-    "start": 13.571,
-    "end": 15.711
-   },
-   {
-    "text": "And b402 payments.",
-    "start": 16.177,
-    "end": 18.317
-   },
-   {
     "text": "Every call, and every error, is logged live.",
-    "start": 18.822,
-    "end": 22.047
+    "start": 2.722,
+    "end": 5.982
    }
   ],
   "speech": [
    [
-    0,
-    3.553
+    2.722,
+    3.52
    ],
    [
-    4.134,
-    6.077
-   ],
-   [
-    6.651,
-    9.417
-   ],
-   [
-    9.857,
-    13.022
-   ],
-   [
-    13.571,
-    15.711
-   ],
-   [
-    16.177,
-    18.317
-   ],
-   [
-    18.822,
-    19.62
-   ],
-   [
-    19.803,
-    22.047
+    3.703,
+    5.982
    ]
   ]
  },

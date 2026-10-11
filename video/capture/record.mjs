@@ -182,7 +182,7 @@ for (const name of wanted) {
   const list = frames.map((f, i) => `file '${f.file.replace(/\\/g, "/")}'\nduration ${Math.max(0.001, ((frames[i + 1]?.t ?? f.t + 0.033) - f.t)).toFixed(4)}`).join("\n");
   writeFileSync(join(dir, "list.txt"), `${list}\nfile '${frames.at(-1).file.replace(/\\/g, "/")}'\n`);
   const out = join(root, "public", "capture", `${name}.mp4`);
-  ffmpeg(["-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", join(dir, "list.txt"), "-vf", "scale=1920:1080", "-r", "30", "-fps_mode", "cfr", "-pix_fmt", "yuv420p", "-c:v", "libx264", "-preset", "medium", "-crf", "16", out]);
+  ffmpeg(["-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", join(dir, "list.txt"), "-vf", "scale=1920:1080", "-r", "30", "-fps_mode", "cfr", "-pix_fmt", "yuv420p", "-c:v", "libx264", "-preset", "medium", "-crf", "16", "-bf", "0", "-g", "30", "-movflags", "+faststart", out]);
   console.log(`${name}: ${frames.length} frames over ${((Date.now() - started) / 1000).toFixed(1)} s → ${out}`);
   await ctx.close();
 }

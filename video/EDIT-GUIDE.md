@@ -59,14 +59,14 @@ If you'd rather finish in CapCut, DaVinci Resolve or Premiere:
 - **Description:**
 
 ```
-Nightshift prices every bStock on BNB Chain for the next US open, around the clock: a fair value and a 90% band, sealed on-chain by three forecasters before the bell, scored by the official open, and read by contracts.
+Nightshift prices every bStock on BNB Chain for the next US open, around the clock: a fair value and a 90% band, sealed on-chain by three forecasters before the bell and scored against the official open. Contracts can read it through Chainlink-compatible feeds and a Venus-compatible adapter.
 
 Live site: https://nightshift-oracle.vercel.app
-Verify any forecast from your browser: https://nightshift-oracle.vercel.app/verify
-Built on the Binance Web3 API (live telemetry): https://nightshift-oracle.vercel.app/stack
+Verify any forecast from your browser (no wallet): https://nightshift-oracle.vercel.app/verify
+Binance Web3 API telemetry: https://nightshift-oracle.vercel.app/stack
 Code: https://github.com/iamdflame/nightshift
 
-All figures in the video are live from BNB Chain mainnet and the Nightshift API (snapshot Oct 11 2026).
+All figures in the video come from BNB Chain mainnet and the Nightshift API (snapshot Oct 11 2026). Backtest: 70 gaps, 60,794 out-of-sample forecasts, Jun 11 to Oct 7 2026.
 
 Footage: "Lights of Human Activity Shine in NASA's Image of Earth at Night" (NASA Goddard, public domain); Mixkit (Mixkit Stock Video Free License): full moon, city aerials, Milky Way, stars, clock.
 Music: "Moon Walk" by Eugenio Mininni (Mixkit Stock Music Free License).

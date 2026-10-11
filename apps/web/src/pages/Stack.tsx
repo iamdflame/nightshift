@@ -286,9 +286,9 @@ export default function Stack() {
                 ["answer", "Fair value for the next open, USD, 8 decimals. updatedAt is when the report was posted."],
                 ["band()", "lower and upper (5th and 95th percentile at the open), anchorTime, session, and flags: corporate action, reference stale, thin liquidity, degraded."],
                 ["Updates", "Tokens a contract reads post every 30 minutes; the rest on a 25 bps move, a 20% band change or a 6-hour heartbeat."],
-                ["Staleness", "The feed returns the last report and never reverts on age, so check updatedAt. The Venus adapter reverts past 1 hour or on a corporate-action flag, so Venus falls back to its pivot. Our credit vault refuses stale, flagged or wider-than-15% reports for new borrows."],
+                ["Staleness", "The feed returns the last report and never reverts on age, so check updatedAt. The Venus adapter reverts past 1 hour or on a corporate-action flag. As Venus's main oracle, that sends Venus to its pivot; as a pivot, a revert fails the main's validation, so don't wire it where liquidations depend on it. Our credit vault refuses stale, flagged or wider-than-15% reports for new borrows."],
                 ["Who signs", "One allowlisted reporter, the Scorer's key (0x6890…f19e), which is also the owner. The consensus is computed off-chain from the sealed forecasts; anyone can check a forecast against its root, not yet the consensus itself."],
-                ["Suggested use", "A weekend haircut, pivot or bound next to a lender's main feed, not the only source."],
+                ["Suggested use", "A borrow-only sentinel next to a lender's main feed: in closed sessions, value new borrows at the lower of the main price and the band's lower edge, and pause them when the band is unusually wide or a flag is set. Never liquidate at the lower edge."],
               ].map(([k, v]) => (
                 <div key={k} className="grid gap-x-3 sm:grid-cols-[7.5rem_1fr]">
                   <dt className="num text-moon-1">{k}</dt>

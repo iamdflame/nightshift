@@ -135,7 +135,7 @@ export function S8({ dur }: { dur: number }) {
         </AbsoluteFill>
       </Shot>
       <Shot from={a} to={dur} fadeOut={0}>
-        <Screen src="capture/stack.mp4" from={45} url="nightshift-oracle.vercel.app/stack" focus={[[0, 1.0, 50, 20], [dur - a, 1.1, 50, 45]]} />
+        <Screen src="capture/stack.mp4" from={126} url="nightshift-oracle.vercel.app/stack" focus={[[0, 1.0, 50, 20], [dur - a, 1.1, 50, 45]]} />
       </Shot>
     </AbsoluteFill>
   );

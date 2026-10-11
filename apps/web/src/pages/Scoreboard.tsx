@@ -44,14 +44,14 @@ function Instrument({ f, crps, mae, cov, n, opens, best }: { f: Forecaster; crps
       </dl>
       <div className="mt-5">
         <div className="flex justify-between text-[12.5px] text-moon-2">
-          <span>90% band coverage</span>
+          <span>90% band coverage, every live round</span>
           <span className="num text-moon-1">{cov != null ? pct(cov) : "–"}</span>
         </div>
         <div className="relative mt-2 h-2 rounded-full bg-night-1">
           <div className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${Math.min(100, (cov ?? 0) * 100)}%`, background: COLOR[f] }} />
           <span className="absolute -top-1 bottom-[-4px] w-0.5 bg-moon-0" style={{ left: "90%" }} title="90% target" />
         </div>
-        <p className="mt-1.5 text-[11.5px] text-moon-3">The white tick is the 90% target: a calibrated band covers it.</p>
+        <p className="mt-1.5 text-[11.5px] text-moon-3">Share of all forecasts made before scored opens whose band held the open. The white tick is the 90% target. The last forecast before each bell covers more than early ones.</p>
       </div>
       <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-rule pt-4 text-[12.5px] text-moon-3">
         <span>
@@ -168,11 +168,17 @@ export default function Scoreboard() {
                 className={`num rounded px-2 py-1 text-[11.5px] ${o.covered ? "bg-night-2 text-moon-1" : "bg-down/15 text-down"}`}
               >
                 {o.symbol} {num(o.errBps, 0)}
+                {!o.covered && (
+                  <>
+                    <span aria-hidden> ×</span>
+                    <span className="sr-only">, opened outside the band</span>
+                  </>
+                )}
               </span>
             ))}
           </div>
           <p className="mt-3 text-[12.5px] text-moon-3">
-            Each chip: absolute miss in bps. Red chips opened outside the band. Across every scored open so far,{" "}
+            Each chip: absolute miss in bps. Red chips marked × opened outside the band. Across every scored open so far,{" "}
             {(opens?.opens ?? []).filter((o) => o.realized < o.lower).length} of {(opens?.opens ?? []).length} stock-opens landed below the lower edge (a calibrated 90% band
             would put about 5% there).
           </p>
