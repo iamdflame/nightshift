@@ -21,3 +21,4 @@ contracts/deployments/*.dry-run.json
 
 # Railway variables file (holds secrets)
 deploy/railway/railway.env
+tsconfig.tsbuildinfo
