@@ -1,6 +1,7 @@
 import { Composition } from "remotion";
 import { calculateMainMetadata, Main, type MainProps, SceneWithVoice } from "./Main";
 import { SCENES } from "./script";
+import { Thumbnail } from "./Thumbnail";
 import { FPS, loadFonts } from "./theme";
 
 loadFonts();
@@ -20,6 +21,7 @@ export function Root() {
         defaultProps={{ durations: estimates, hasVo: estimates.map(() => false), music: "music/moon-walk.mp3", captions: true } satisfies MainProps}
         calculateMetadata={calculateMainMetadata}
       />
+      <Composition id="Thumbnail" component={Thumbnail} width={1280} height={720} fps={FPS} durationInFrames={1} />
       {SCENES.map((s, i) => (
         <Composition
           key={s.id}
