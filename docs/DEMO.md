@@ -1,23 +1,27 @@
-# Demo video (≤ 4:00)
+# Demo video script (target 2:45, limit 4:00)
 
-Recorded from the live system, with real mainnet transactions. Narration by the human team. Captions on: judges skim, and screeners read transcripts.
+Recorded from the live system, with real BSC mainnet transactions. The voice is yours. Read the "Say" column in your own words; captions carry the key numbers for judges who watch muted. Record at 1920×1080, browser zoom 125%, dark terminal.
 
-| Time | Screen | Say (paraphrase in your own voice) |
-|---|---|---|
-| 0:00–0:12 | Radar during the weekend dark hours, with the clock showing "US market closed" | "Nightshift prices tokenized stocks while Wall Street sleeps. Right now there is no reference price for any US stock, and these 91 tokens are still trading." |
-| 0:12–0:35 | Which? for NVDA: three tokens, three prices | "Same company, three tokens. Binance's own agent wallet asks *you* to pick. Picking wrong cost 83 bps on Thursday. Nightshift answers with the cheapest real share, against fair value." |
-| 0:35–1:05 | Science page: chart and table | "We backtested every gap since bStocks launched, out of sample. Echoing the weekend price is barely better than a stale oracle, and mid-weekend it's worse. Our model splits each move by information provenance and wins in every regime: −22% overall, −44% at the Sunday-night restart, calibrated 90% bands." |
-| 1:05–1:40 | Night Shift page: rounds, then BscScan commit tx, then the proof page | "Three AI forecasters with ERC-8004 identities commit Merkle roots of their forecasts to BNB Chain every 30 minutes, *before* the open. Here is Saturday's commitment, and here is the proof for NVIDIA." |
-| 1:40–2:10 | Scoreboard after Monday's open, plus an ERC-8183 job on BscScan | "Monday's open scored them. The forecaster that beat the stale oracle got paid in U through ERC-8183 on BNB's own commerce contracts. One that doesn't is disputed with the score report as evidence." |
-| 2:10–2:45 | Claude Code + Agentic Wallet + the Nightshift skill: "buy $5 of NVIDIA", then the receipt | "Any agent with a Binance Agentic Wallet can use this. The skill picks the token, checks the band, buys with `baw`, then our receipt proves the price paid per real share vs fair value, from on-chain logs." |
-| 2:45–3:20 | Lend: Sunday borrow tx; Pools: LVR numbers | "Because we can price the dark hours, you can borrow against your stocks on a Sunday: collateral is valued at the 5th-percentile next-open price. And our PancakeSwap Infinity hook cut LP losses at the reopen by 71% on a mainnet fork." |
-| 3:20–3:45 | Identities, then the Venus risk report | "The market even checks itself: leveraged ETFs agree with their base within 2 bps. And Venus's zero borrow caps aren't a solvency problem. A year of weekend gaps says it's an oracle problem, the one we solve." |
-| 3:45–4:00 | Logo plus one line | "Wall Street sleeps. Nightshift doesn't." |
+| Time | Screen | Say | On-screen text |
+|---|---|---|---|
+| 0:00–0:10 | BscScan: a ForecastBook commit from this weekend, block time visible | "This is an AI agent committing its forecast of every tokenized stock's Monday open to BNB Chain, on a Saturday, before the market opens. It gets paid only if Monday proves it right." | Committed before the open. Paid only if right. |
+| 0:10–0:30 | README problem section: the Chainlink quote and the 62% number | "Tokenized stocks trade all weekend: 62% of bStocks' July volume happened while US markets were dark. But the oracles stop. Chainlink's own docs say their equity feeds don't update while markets are closed. So Venus lists NVIDIA as collateral with borrowing switched off." | 62% of volume while markets are closed. Oracles stop. |
+| 0:30–1:00 | API: `/v1/fair-value/NVDAB` (fair value + band), then `/v1/rounds/.../proof/nfv/NVDAB` | "Nightshift prices every bStock through the dark hours: a fair value and a 90% band for the next open. Three forecaster agents with ERC-8004 identities commit Merkle roots every 30 minutes. Here's one NVIDIA forecast and its proof against the root on-chain." | Fair value + 90% band for the next open |
+| 1:00–1:30 | docs/LIVE.md: the Sunday loan section, then the borrow tx on BscScan | "Because the dark hours have a price, you can borrow against stocks on a Sunday. Our credit vault values NVIDIA at the band's lower edge, Monday's bad case, not Friday's close. This loan was taken today, on mainnet." | A loan against NVIDIA, on a Sunday |
+| 1:30–1:55 | docs/LIVE.md: the ERC-8183 jobs table, then one job on BscScan | "The agents are paid through ERC-8183 jobs on BNB's own commerce contracts. After the open, our scorer grades every forecast. Beat the stale oracle and you're paid in U. Miss, and the job is disputed with the score report as evidence." | Pay-for-accuracy: ERC-8183 |
+| 1:55–2:20 | README results tables: backtest + live opens | "It works. Out of sample over 70 gaps, our model cut forecast error 22% versus a stale oracle. On the live opens since Thursday, 49% and 31%, scored automatically." | −22% backtest · −49% / −31% live |
+| 2:20–2:40 | Claude Code with the Agentic Wallet + Nightshift skill: pay via x402, buy $5 of NVDAB, `/v1/receipts/{tx}` | "Any agent with a Binance Agentic Wallet can use it: pay a cent over x402 for the full report, buy inside the band with baw, and get a receipt rebuilt from on-chain logs." | Agentic Wallet + x402 + receipts |
+| 2:40–2:45 | Logo + repo URL | "Wall Street sleeps. Nightshift doesn't." | github.com/iamdflame/nightshift |
 
-## Checklist before recording
+## Shot checklist (all must exist before recording)
+- [ ] ForecastBook commit tx for the Oct 12 open (docs/LIVE.md → "Proof of foresight").
+- [ ] Sunday loan txs (docs/LIVE.md → "The Sunday loan").
+- [ ] ERC-8183 jobs created and funded (docs/LIVE.md → jobs table).
+- [ ] Public API URL works logged-out (`/v1/fair-value/NVDAB`, `/v1/rounds`, proof endpoint).
+- [ ] Agentic Wallet buy + receipt; x402 payment (needs B402 on the API key).
+- [ ] Upload unlisted to YouTube; check it plays logged-out; paste the link in the form.
 
-- [ ] The Saturday ForecastBook commit tx is visible on BscScan (forecaster address = ERC-8004 identity).
-- [ ] Monday scoreboard populated (record after Mon 13:45 UTC, or use Thursday/Friday opens).
-- [ ] Agentic Wallet funded; developer mode enabled; the skill installed (`skills/nightshift`).
-- [ ] The receipt for the demo buy is ready (`/v1/receipts/{tx}`).
-- [ ] The credit vault borrow tx and the hook pool swap tx are ready.
+## Recording tips
+- Windows: Win + G (Xbox Game Bar) records the active window; or OBS for the full screen.
+- Do one silent screen pass first, then record the voice over it; cut the waits.
+- Keep it under 3 minutes: round-one judges watch the first 30 seconds most carefully.
