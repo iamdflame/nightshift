@@ -88,6 +88,19 @@ if (loan?.steps && Object.keys(loan.steps).length) {
   out.push("");
 }
 
+const awTrades = read<{ wallet: string; command: string; txHash: string; receipt: { tca: { verdict: string; vsFairValueBps: number | null }; pricePerToken: number; amountToken: number; amountUsd: number; reference: { fairValue: number; lower: number; upper: number; round: number } | null; receiptHash: string } }[]>("deployments/agentic-wallet-trades.json");
+if (awTrades?.length) {
+  out.push("## Binance Agentic Wallet trades (Wallet Skill + receipts)", "");
+  out.push("| Trade | Price paid | Fair value at that moment (90% band) | Receipt verdict | Tx |", "|---|---|---|---|---|");
+  for (const t of awTrades) {
+    const r = t.receipt;
+    out.push(
+      `| $${r.amountUsd} → ${r.amountToken.toFixed(6)} NVDAB from ${addr(t.wallet)} | $${r.pricePerToken.toFixed(2)} | ${r.reference ? `$${r.reference.fairValue.toFixed(2)} ($${r.reference.lower.toFixed(2)} – $${r.reference.upper.toFixed(2)}), round ${r.reference.round}` : "–"} | ${r.tca.verdict} | ${txl(t.txHash)} |`,
+    );
+  }
+  out.push("", "Receipts are rebuilt from the chain's Transfer logs: `GET /v1/receipts/{tx}?trader={wallet}`; the `receiptHash` pins every number.", "");
+}
+
 if (has("jobs")) {
   const rows = db.prepare(`SELECT job_id, forecaster, anchor_time, budget, status, create_tx, fund_tx, submit_tx, verdict, judge_tx FROM jobs ORDER BY anchor_time DESC, forecaster LIMIT 30`).all() as Record<string, string | number | null>[];
   if (rows.length) {

@@ -1,0 +1,49 @@
+[
+  {
+    "wallet": "0x43Cf3295a41Fc70B215763a47ec36874604EbaD1",
+    "command": "baw market-order swap --fromTokenQty 5 --fromToken 0x55d398326f99059fF775485246999027B3197955 --toToken 0x02Fca66C1D1aFB4E2A7884261eB00F63598a7436 --binanceChainId 56 --slippage 1",
+    "orderIdReturned": "26101100001956217674",
+    "orderIdListed": "26101100001956217675",
+    "bawReportedQty": "0.021695790321445194",
+    "onchainQty": "0.021678919271532884",
+    "uiMultiplier": "1.000778223752807865",
+    "txHash": "0xbd77806a9c274aa9d3609df15c856f37ef61ff85f843511371140897a02af92a",
+    "receipt": {
+      "version": "nightshift.receipt.v1",
+      "chainId": 56,
+      "txHash": "0xbd77806a9c274aa9d3609df15c856f37ef61ff85f843511371140897a02af92a",
+      "block": 126932688,
+      "timestamp": "2026-10-11T01:35:29.000Z",
+      "trader": "0x43cf3295a41fc70b215763a47ec36874604ebad1",
+      "side": "buy",
+      "token": {
+        "address": "0x02fca66c1d1afb4e2a7884261eb00f63598a7436",
+        "symbol": "NVDAB",
+        "ticker": "NVDA",
+        "sharesPerToken": 1.0007782237528078
+      },
+      "payToken": {
+        "address": "0x55d398326f99059ff775485246999027b3197955",
+        "symbol": "USDT"
+      },
+      "amountToken": 0.021678919271532884,
+      "amountUsd": 5,
+      "pricePerToken": 230.6388034096156,
+      "pricePerShare": 230.4594543881516,
+      "session": "closed",
+      "reference": {
+        "round": 29861375,
+        "fairValue": 229.84012415913648,
+        "lower": 225.03259321834236,
+        "upper": 233.95186699500846,
+        "anchorTime": "2026-10-12T13:30:00.000Z"
+      },
+      "tca": {
+        "vsFairValueBps": 34.75,
+        "insideBand": true,
+        "verdict": "bought 34.7 bps above fair value (inside the 90% band)"
+      },
+      "receiptHash": "0xbbf5d76b676923f986b5c7f996cf33796deef24fb7c4ef3d6a0af6537ca4dad3"
+    }
+  }
+]

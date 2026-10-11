@@ -76,6 +76,9 @@
   - One EVM address is shared by BSC, Ethereum, Base, Arbitrum, Polygon and Robinhood Chain.
 - **Your own experience:** QR sign-in, limits setup, developer mode, `baw` commands, the skill install. Write what worked and what didn't.
 
+- **`baw market-order swap` returned an orderId that `market-order list` doesn't know** (Oct 11, 01:35 UTC). The swap answered `"orderId": "26101100001956217674"`; `baw market-order list --orderId 26101100001956217674 --json` returned `"total": 0` for 80 s of polling, while `market-order list` without a filter showed the same trade as **26101100001956217675** with `"status": "FINISHED"` ([tx](https://bscscan.com/tx/0xbd77806a9c274aa9d3609df15c856f37ef61ff85f843511371140897a02af92a)). The skill makes polling by the returned ID mandatory, so an agent following it never sees the fill.
+- **Two different quantities for one trade.** `toTokenActualQty` was **0.021695790321445194** NVDAB; the Transfer log and `balanceOf` say **0.021678919271532883**. NVDAB exposes `uiMultiplier()` = 1.000778223752807865, and the CLI reports the scaled "UI" amount without saying so. A receipt built from the chain and one built from the CLI disagree by 7.8 bps.
+
 ## 6. Redesign suggestions and requested capabilities (seed ideas: rewrite in your words)
 
 - Resolve bare tickers by data, not by asking the user. Expose per-share price across issuers (we built `/v1/which`).
