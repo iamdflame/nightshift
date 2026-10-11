@@ -18,28 +18,39 @@ import { useFairValue, useHistory, useOnchain } from "@/lib/queries";
 gsap.registerPlugin(SplitText, useGSAP);
 
 const NightSky = lazy(() => import("@/scene/NightSky"));
+const MoonPhaseLabel = lazy(() => import("@/scene/NightSky").then((m) => ({ default: m.MoonPhaseLabel })));
 
-/** Mini fan: the consensus band for the next open, round by round (real points only). */
+/** Mini fan: the token's real hourly price (moonlight) against the consensus band aimed at the next open (amber). */
 function MiniFan({ symbol }: { symbol: string }) {
   const { data } = useHistory(symbol, 72);
-  const pts = useMemo(() => (data ? data.points.filter((p) => p.anchorTime === data.nextAnchor) : []), [data]);
-  if (pts.length < 2) return <div className="h-[72px] rounded-md bg-night-1/60" aria-hidden />;
-  const W = 320, H = 72, pad = 4;
-  const t0 = pts[0]!.t, t1 = data!.nextAnchor;
-  const lo = Math.min(...pts.map((p) => p.lower)), hi = Math.max(...pts.map((p) => p.upper));
-  const x = (t: number) => pad + ((t - t0) / (t1 - t0)) * (W - 2 * pad);
+  const model = useMemo(() => {
+    if (!data) return null;
+    const pts = data.points.filter((p) => p.anchorTime === data.nextAnchor);
+    if (pts.length < 2) return null;
+    const t0 = pts[0]!.t, t1 = data.nextAnchor;
+    const k = data.klines.filter((x) => x.t >= t0 - 3600_000);
+    const vals = [...pts.flatMap((p) => [p.lower, p.upper]), ...k.map((x) => x.close)];
+    return { pts, k, t0, t1, lo: Math.min(...vals), hi: Math.max(...vals) };
+  }, [data]);
+  if (!model) return <div className="h-[84px] rounded-md bg-night-1/60" aria-hidden />;
+  const { pts, k, t0, t1, lo, hi } = model;
+  const W = 340, H = 84, pad = 6;
+  const x = (t: number) => pad + ((Math.max(t, t0) - t0) / (t1 - t0)) * (W - 2 * pad);
   const y = (v: number) => H - pad - ((v - lo) / (hi - lo || 1)) * (H - 2 * pad);
-  const step = (sel: (p: (typeof pts)[number]) => number) => pts.map((p, i) => `${i ? "L" : "M"}${x(p.t).toFixed(1)},${y(sel(p)).toFixed(1)}${i < pts.length - 1 ? `H${x(pts[i + 1]!.t).toFixed(1)}` : ""}`).join("");
-  const upper = step((p) => p.upper);
-  const lowerRev = [...pts].reverse().map((p, i, a) => `L${(i === 0 ? x(t1) : x(a[i - 1]!.t)).toFixed(1)},${y(p.lower).toFixed(1)}L${x(p.t).toFixed(1)},${y(p.lower).toFixed(1)}`).join("");
+  const stepPath = (sel: (p: (typeof pts)[number]) => number) =>
+    pts.map((p, i) => `${i ? "L" : "M"}${x(p.t).toFixed(1)},${y(sel(p)).toFixed(1)}H${(i < pts.length - 1 ? x(pts[i + 1]!.t) : x(t1)).toFixed(1)}`).join("");
+  const lowerBack = [...pts].reverse().map((p, i, a) => `L${(i === 0 ? x(t1) : x(a[i - 1]!.t)).toFixed(1)},${y(p.lower).toFixed(1)}L${x(p.t).toFixed(1)},${y(p.lower).toFixed(1)}`).join("");
+  const price = k.map((p, i) => `${i ? "L" : "M"}${x(p.t).toFixed(1)},${y(p.close).toFixed(1)}`).join("");
   const last = pts[pts.length - 1]!;
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="h-[72px] w-full" role="img" aria-label={`Consensus band for the next open over ${pts.length} rounds`}>
-      <path d={`${upper}H${x(t1)}${lowerRev}Z`} fill="rgb(255 178 63 / 0.14)" />
-      <path d={`${step((p) => p.fairValue)}H${x(t1)}`} fill="none" stroke="#FFB23F" strokeWidth="1.6" />
-      <line x1={x(t1)} x2={x(t1)} y1={0} y2={H} stroke="#FFB23F" strokeDasharray="3 3" strokeOpacity="0.8" />
-      <line x1={x(t1) - 5} x2={x(t1)} y1={y(last.upper)} y2={y(last.upper)} stroke="#FFB23F" />
-      <line x1={x(t1) - 5} x2={x(t1)} y1={y(last.lower)} y2={y(last.lower)} stroke="#FFB23F" />
+    <svg viewBox={`0 0 ${W} ${H}`} className="h-[84px] w-full overflow-visible" role="img" aria-label={`NVDAB hourly price against the consensus band for the next open, ${pts.length} rounds`}>
+      <path d={`${stepPath((p) => p.upper)}${lowerBack}Z`} fill="rgb(255 178 63 / 0.13)" />
+      <path d={stepPath((p) => p.upper)} fill="none" stroke="rgb(255 178 63 / 0.45)" strokeWidth="1" />
+      <path d={stepPath((p) => p.lower)} fill="none" stroke="rgb(255 178 63 / 0.45)" strokeWidth="1" />
+      <path d={stepPath((p) => p.fairValue)} fill="none" stroke="#FFB23F" strokeWidth="1.6" />
+      {price && <path d={price} fill="none" stroke="#E4E1D6" strokeOpacity="0.85" strokeWidth="1.2" strokeLinejoin="round" />}
+      <line x1={x(t1)} x2={x(t1)} y1={2} y2={H - 2} stroke="#FFB23F" strokeDasharray="2 3" />
+      <path d={`M${x(t1) - 6},${y(last.upper)}H${x(t1)}V${y(last.lower)}H${x(t1) - 6}`} fill="none" stroke="#FFB23F" strokeWidth="1.4" />
     </svg>
   );
 }
@@ -80,6 +91,10 @@ function LiveCard() {
       </p>
       <div className="mt-4">
         <MiniFan symbol="NVDAB" />
+        <div className="mt-1.5 flex items-center gap-4 text-[11.5px] text-moon-3">
+          <span className="inline-flex items-center gap-1.5"><span className="h-px w-3 bg-moon-1" aria-hidden />Token price, hourly</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-0.5 w-3 bg-sodium" aria-hidden />Consensus and 90% band for the bell</span>
+        </div>
       </div>
       <div className="mt-4 grid grid-cols-2 gap-3 border-t border-rule pt-4 text-[13px]">
         <div>
@@ -158,7 +173,7 @@ export function Hero() {
               Verify a forecast
             </Link>
           </motion.div>
-          <p className="mt-10 max-w-[46ch] text-[13px] text-moon-3">Each amber streak in the sky is a real forecast sealed on BNB Chain. The moon and the stars are the real ones above Wall Street right now.</p>
+          <p className="mt-10 max-w-[48ch] text-[13px] text-moon-3">Each amber streak is a real forecast sealed on BNB Chain. The stars are tonight's real sky over Wall Street, and <Suspense fallback="tonight"><MoonPhaseLabel /></Suspense>.</p>
         </div>
         <div className="flex justify-start lg:justify-end">
           <LiveCard />
