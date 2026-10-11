@@ -22,8 +22,9 @@ import { openNetworkDb } from "../store.ts";
 import { type Role, walletFor } from "./wallets.ts";
 
 const FORECASTERS: Role[] = ["anchor", "echo", "nfv"];
-const BUDGET_U = BigInt(process.env.NIGHTSHIFT_JOB_BUDGET_WEI ?? 200_000_000_000_000_000n); // 0.2 U per forecaster per open
-const PUBLIC_URL = process.env.NIGHTSHIFT_PUBLIC_URL ?? "http://localhost:8787";
+const BUDGET_U = BigInt(process.env.NIGHTSHIFT_JOB_BUDGET_WEI ?? 100_000_000_000_000_000n); // 0.1 U per forecaster per open
+/** On-chain job text must point somewhere a stranger can open: the live API, else the public repo. */
+const PUBLIC_URL = process.env.NIGHTSHIFT_PUBLIC_URL?.replace(/\/+$/, "") || "https://github.com/iamdflame/nightshift";
 
 const SCHEMA = `CREATE TABLE IF NOT EXISTS jobs (
   job_id TEXT PRIMARY KEY, forecaster TEXT NOT NULL, anchor_time INTEGER NOT NULL, budget TEXT NOT NULL,
@@ -67,7 +68,7 @@ export async function submitJobs(db: DatabaseSync, anchorTime: number): Promise<
     const job = db.prepare(`SELECT job_id FROM jobs WHERE forecaster = ? AND anchor_time = ? AND status = 'funded'`).get(f, anchorTime) as { job_id: string } | undefined;
     if (!job) continue;
     const c = db
-      .prepare(`SELECT round, root FROM commitments WHERE forecaster = ? AND anchor_time = ? AND chain_status IN ('committed','local') ORDER BY round DESC LIMIT 1`)
+      .prepare(`SELECT round, root FROM commitments WHERE forecaster = ? AND anchor_time = ? AND chain_status = 'committed' ORDER BY round DESC LIMIT 1`)
       .get(f, anchorTime) as { round: number; root: `0x${string}` } | undefined;
     if (!c) continue;
     const fc = await client(f);
@@ -116,6 +117,23 @@ export async function settleJobs(db: DatabaseSync): Promise<void> {
       log(`job ${j.job_id} not settleable yet: ${(e as Error).message.split("\n")[0]}`);
     }
   }
+}
+
+/**
+ * The autonomous lifecycle, run by the Night Shift runner after every round (serialized with the other
+ * treasury transactions): open the next open's jobs, submit each forecaster's last on-chain root in the final round
+ * before the bell, judge once the open is scored, settle after the dispute window.
+ */
+export async function jobsTick(db: DatabaseSync, now = Date.now()): Promise<void> {
+  db.exec(SCHEMA);
+  const next = nextRegularOpen(now);
+  const has = (a: number) => (db.prepare(`SELECT COUNT(*) n FROM jobs WHERE anchor_time = ?`).get(a) as { n: number }).n > 0;
+  if (next - now > 45 * 60_000 && !has(next)) await openJobs(db, next);
+  // Rounds land at :00/:30 and opens at :30, so the round 30 min before the bell is the last chance.
+  if (next - now <= 35 * 60_000) await submitJobs(db, next);
+  const judged = db.prepare(`SELECT DISTINCT j.anchor_time a FROM jobs j WHERE j.status = 'submitted' AND j.anchor_time < ? AND EXISTS (SELECT 1 FROM scores s WHERE s.anchor_time = j.anchor_time)`).all(now) as { a: number }[];
+  for (const { a } of judged) await judgeJobs(db, a);
+  await settleJobs(db);
 }
 
 if (process.argv[1]?.endsWith("jobs.ts")) {

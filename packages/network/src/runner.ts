@@ -6,6 +6,7 @@
  */
 import { sessionAt } from "@nightshift/core";
 import { LiveEngine } from "@nightshift/nfv";
+import { jobsTick } from "./chain/jobs.ts";
 import { commitPending, deployments, postConsensus } from "./chain/publish.ts";
 import { loadEnv } from "./env.ts";
 import { produceRound } from "./rounds.ts";
@@ -26,6 +27,12 @@ async function publish(): Promise<void> {
     await postConsensus(db);
   } catch (e) {
     log(`publish failed: ${(e as Error).message}`);
+  }
+  try {
+    // ERC-8183 pay-for-accuracy (open → submit → judge → settle) spends treasury U: opt-in.
+    if (process.env.NIGHTSHIFT_JOBS === "1") await jobsTick(db);
+  } catch (e) {
+    log(`jobs failed: ${(e as Error).message.split("\n")[0]}`);
   } finally {
     publishing = false;
   }
