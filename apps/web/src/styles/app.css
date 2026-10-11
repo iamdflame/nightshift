@@ -179,3 +179,8 @@ p { text-wrap: pretty; }
 /* Primary CTA shimmer (one per view). */
 .ns-shimmer { background-image: linear-gradient(110deg, var(--color-sodium) 0%, var(--color-sodium) 44%, #ffcf86 50%, var(--color-sodium) 56%, var(--color-sodium) 100%); background-size: 250% 100%; animation: shimmer 6s linear infinite; }
 @media (prefers-reduced-motion: reduce) { .ns-beam, .ns-shimmer { animation: none; } }
+
+/* A light pulse travelling along a beam path (pathLength=100, dash 14/86). */
+.ns-beam-pulse { animation: ns-beam-flow 3.2s var(--ease-travel) infinite; }
+@keyframes ns-beam-flow { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) { .ns-beam-pulse { animation: none; } }
