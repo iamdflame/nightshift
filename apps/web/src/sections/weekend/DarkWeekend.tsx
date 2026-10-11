@@ -5,7 +5,9 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import { lastRegularClose, nextRegularOpen, sessionAt } from "@ns/calendar";
 import { useNow } from "@/hooks/useNow";
-import { usd } from "@/lib/format";
+import { BACKTEST } from "@/data/backtest";
+import type { History } from "@/lib/api";
+import { num, usd } from "@/lib/format";
 import { useHistory } from "@/lib/queries";
 import { ringBell, tick } from "@/lib/sound";
 
@@ -16,6 +18,26 @@ const LANE = { anchor: "#4A8CF0", echo: "#097C60", nfv: "#D66A98" } as const;
 const etClock = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false });
 const utcClock = new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false });
 
+const weekday = (ms: number) => new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "long" }).format(ms);
+const WEEKEND_HOURS = 40;
+
+/**
+ * The weekend this chapter tells: the one under way (live), else the most recent completed one, replayed to its
+ * real bell. A weekend is a dark gap of 40 h or more (Friday close to Monday open, longer around holidays);
+ * weekday overnights are skipped, because the story (and its captions) is about the weekend.
+ */
+export function weekendWindow(now: number): { close: number; bell: number; live: boolean } {
+  let bell = nextRegularOpen(now);
+  let close = lastRegularClose(bell - 60_000);
+  for (let i = 0; i < 12; i++) {
+    if (close <= now && bell - close >= WEEKEND_HOURS * 3600_000) return { close, bell, live: now < bell };
+    // Step back one dark window: the previous bell is the open of the session that ended at `close`.
+    bell = nextRegularOpen(close - 8 * 3600_000);
+    close = lastRegularClose(bell - 60_000);
+  }
+  return { close, bell, live: false };
+}
+
 /** Regular-session hours in the 168 h before the bell, from the real market calendar (holiday-aware). */
 function openHoursThisWeek(bell: number) {
   let q = 0;
@@ -23,11 +45,53 @@ function openHoursThisWeek(bell: number) {
   return q / 4;
 }
 
-function Captions({ index, openHours, sealed, darkHours }: { index: number; openHours: number; sealed: number; darkHours: number }) {
+function BellResult({ h }: { h: History }) {
+  const cons = [...h.points].reverse().find((q) => q.t < h.anchor);
+  if (h.realized == null || !cons) return <>The bell rang at 09:30 ET. Scoring lands within about two hours of the open.</>;
+  const err = Math.log(cons.fairValue / h.realized) * 1e4;
+  const inside = h.realized >= cons.lower && h.realized <= cons.upper;
+  const name: Record<string, string> = { anchor: "Anchor (Friday's close)", echo: "Echo (the token's price)", nfv: "NFV (our model)" };
+  return (
+    <>
+      NVDAB opened at <span className="num text-moon-0">{usd(h.realized)}</span>. The last sealed consensus said <span className="num text-moon-0">{usd(cons.fairValue)}</span> (
+      <span className="num">
+        {err >= 0 ? "+" : "−"}
+        {num(Math.abs(err), 1)}
+      </span>{" "}
+      bps), {inside ? "inside" : "outside"} its 90% band.{" "}
+      {h.lastCommits
+        .filter((c) => c.errBps != null)
+        .map((c) => `${name[c.forecaster]} ${c.errBps! >= 0 ? "+" : "−"}${num(Math.abs(c.errBps!), 1)} bps`)
+        .join(", ")}
+      .
+    </>
+  );
+}
+
+function Captions({
+  index,
+  openHours,
+  sealed,
+  darkHours,
+  close,
+  bell,
+  live,
+  history,
+}: {
+  index: number;
+  openHours: number;
+  sealed: number;
+  darkHours: number;
+  close: number;
+  bell: number;
+  live: boolean;
+  history: History | undefined;
+}) {
+  const w = BACKTEST.weekendDark;
   const items = [
     {
       h: `The real market sets a price ${openHours} hours a week.`,
-      p: `Tokenized stocks trade all 168. From Friday's close to Monday's bell is ${darkHours} hours with no reference price at all.`,
+      p: `Tokenized stocks trade all 168. From ${weekday(close)}'s close to ${weekday(bell)}'s bell is ${darkHours} hours with no official price at all.`,
     },
     {
       h: "And that's when people trade.",
@@ -42,21 +106,25 @@ function Captions({ index, openHours, sealed, darkHours }: { index: number; open
       ),
     },
     {
-      h: "The oracles go quiet.",
+      h: "The reference goes quiet.",
       p: (
         <>
           “These feeds do not publish updates, including heartbeat updates, while markets are closed.” (
           <a className="underline underline-offset-4 hover:text-moon-0" href="https://docs.chain.link/data-feeds/tokenized-equity-feeds" target="_blank" rel="noreferrer">
             Chainlink docs
           </a>
-          ). Lenders see Friday's close all weekend.
+          ). What's left is each token's own weekend trading, and across every dark weekend since June it called Monday's open barely better than Friday's close:{" "}
+          <span className="num">{num(w.crps_echo_bps, 1)}</span> vs <span className="num">{num(w.crps_stale_bps, 1)}</span> bps of error.
         </>
       ),
     },
     {
       h: "The night shift doesn't.",
-      p: `Every 30 minutes, three agents seal their forecast of Monday's open on BNB Chain. ${sealed ? `${sealed} forecasts are sealed for this bell so far.` : ""}`,
+      p: live
+        ? `Every 30 minutes, three forecasters seal their view of ${weekday(bell)}'s open on BNB Chain, with a 90% band. ${sealed ? `${sealed} forecasts are sealed for this bell so far.` : ""}`
+        : `Every 30 minutes, three forecasters sealed their view of ${weekday(bell)}'s open on BNB Chain, with a 90% band. ${sealed ? `${sealed} forecasts were sealed for that bell.` : ""}`,
     },
+    ...(!live && history ? [{ h: "Then the bell.", p: <BellResult h={history} /> }] : []),
   ];
   const it = items[Math.min(index, items.length - 1)]!;
   return (
@@ -75,17 +143,16 @@ export default function DarkWeekend() {
   const root = useRef<HTMLElement>(null);
   const reduce = Boolean(useReducedMotion());
   const now = useNow();
-  const bell = useMemo(() => nextRegularOpen(now), [Math.floor(now / 60_000)]); // eslint-disable-line react-hooks/exhaustive-deps
-  const close = useMemo(() => lastRegularClose(bell - 60_000), [bell]);
+  const { close, bell, live } = useMemo(() => weekendWindow(now), [Math.floor(now / 60_000)]); // eslint-disable-line react-hooks/exhaustive-deps
   const darkHours = Math.round(((bell - close) / 3600_000) * 10) / 10;
   const openHours = useMemo(() => openHoursThisWeek(bell), [bell]);
-  const { data } = useHistory("NVDAB", Math.ceil((Date.now() - close) / 3600_000) + 2);
-  const pts = useMemo(() => (data ? data.points.filter((p) => p.anchorTime === data.nextAnchor) : []), [data]);
+  const { data } = useHistory("NVDAB", 72, bell);
+  const pts = useMemo(() => (data ? data.points.filter((p) => p.anchorTime === bell) : []), [data, bell]);
   const commits = useMemo(() => (data ? data.commits.filter((c) => c.chain === "committed") : []), [data]);
 
-  const timeRef = useRef<number>(reduce ? Date.now() : close);
+  const timeRef = useRef<number>(reduce ? Math.min(Date.now(), bell) : close);
   const clip = useRef<SVGRectElement>(null);
-  const [p, setP] = useState(reduce ? (Date.now() - close) / (bell - close) : 0);
+  const [p, setP] = useState(reduce ? Math.min(1, (Date.now() - close) / (bell - close)) : 0);
   const [mobile, setMobile] = useState(false);
   const [inView, setInView] = useState(false);
   useEffect(() => {
@@ -96,7 +163,8 @@ export default function DarkWeekend() {
     return () => m.removeEventListener("change", on);
   }, []);
 
-  const caption = Math.min(3, Math.floor(p * 4.4));
+  const last = live || !data ? 3 : 4;
+  const caption = Math.min(last, Math.floor(p * (last + 1.4)));
   const lastCaption = useRef(-1);
   useEffect(() => {
     if (lastCaption.current !== -1 && caption !== lastCaption.current) tick();
@@ -133,7 +201,7 @@ export default function DarkWeekend() {
     { scope: root, dependencies: [close, bell] },
   );
 
-  const simT = reduce ? Date.now() : close + p * (bell - close);
+  const simT = reduce ? Math.min(Date.now(), bell) : close + p * (bell - close);
   const elapsed = (simT - close) / 3600_000;
   const atBell = p > 0.985;
 
@@ -160,24 +228,24 @@ export default function DarkWeekend() {
       <div className="relative mx-auto flex h-full max-w-[1320px] flex-col justify-between px-4 pb-5 pt-20 sm:px-6 md:pb-8 md:pt-28">
         <div className={mobile ? "mt-[29svh]" : "max-w-[34rem]"}>
           <p id="weekend-title" className="text-[14px] font-medium text-sodium/90">
-            The dark weekend
+            {live ? "The dark weekend" : "Last weekend, replayed"}
           </p>
           <div className="mt-3 flex items-baseline gap-4">
-            <time className="whitespace-nowrap font-display text-[clamp(2.4rem,5vw,4.4rem)] font-[300] leading-none text-moon-0">{etClock.format(simT)} ET</time>
+            <time className="whitespace-nowrap font-display text-[clamp(2.4rem,5vw,4.4rem)] font-[300] leading-none text-moon-0">{etClock.format(atBell ? bell : simT)} ET</time>
           </div>
           <p className="num mt-2 text-[12.5px] text-moon-3 md:text-[13px]">
-            <span className="max-sm:hidden">{utcClock.format(simT)} UTC, </span>
-            {elapsed.toFixed(1)} h of {darkHours} h without a reference price
+            <span className="max-sm:hidden">{utcClock.format(atBell ? bell : simT)} UTC, </span>
+            {atBell ? `the bell, after ${darkHours} h without an official price` : `${elapsed.toFixed(1)} h of ${darkHours} h without an official price`}
           </p>
           <div className="mt-4 md:mt-8">
-            <Captions index={reduce ? 3 : caption} openHours={openHours} sealed={commits.length} darkHours={darkHours} />
+            <Captions index={reduce ? last : caption} openHours={openHours} sealed={commits.length} darkHours={darkHours} close={close} bell={bell} live={live} history={data} />
           </div>
         </div>
 
         <div className="relative mt-4 md:-mx-4 md:mt-6 md:rounded-[12px] md:bg-night-0/70 md:px-4 md:pb-3 md:pt-3">
           <div className="mb-2 flex flex-wrap items-end justify-between gap-x-3 gap-y-1 text-[12.5px] text-moon-3">
             <span>
-              NVDAB<span className="max-sm:hidden">, consensus for Monday's open and each agent's sealed forecasts</span>
+              NVDAB<span className="max-sm:hidden">, consensus for {weekday(bell)}'s open and each forecaster's sealed forecasts</span>
             </span>
             {cur && (
               <span className="num text-moon-1">
@@ -218,7 +286,7 @@ export default function DarkWeekend() {
           </div>
           <div className="mt-1.5 flex items-center justify-between gap-3 text-[12px] text-moon-3">
             <span>
-              <span className="max-sm:hidden">Friday close, </span>
+              <span className="max-sm:hidden">{weekday(close)}'s close, </span>
               {etClock.format(close)} ET
             </span>
             <span className="flex items-center gap-3" aria-label="Sealed forecasts by agent">
@@ -230,7 +298,7 @@ export default function DarkWeekend() {
               ))}
             </span>
             <span className={atBell ? "text-sodium" : ""}>
-              <span className="max-sm:hidden">The bell, </span>
+              <span className="max-sm:hidden">{live ? "The bell" : "The bell rang"}, </span>
               {etClock.format(bell)} ET
             </span>
           </div>

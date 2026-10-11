@@ -13,9 +13,9 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 /** API surfaces: a miss here is a JSON 404, never the SPA shell. */
 const API_PATH = /^\/(v1|x402|mcp|_export|openapi\.json|\.well-known)(\/|$)/;
 /** Client-side routes the SPA renders with status 200. Keep in sync with apps/web's router. */
-export const SPA_ROUTES: readonly RegExp[] = [/^\/$/, /^\/radar$/, /^\/s\/[\w.-]{1,24}$/, /^\/proof$/, /^\/scoreboard$/, /^\/verify$/, /^\/credits$/];
+export const SPA_ROUTES: readonly RegExp[] = [/^\/$/, /^\/radar$/, /^\/s\/[\w.-]{1,24}$/, /^\/proof$/, /^\/scoreboard$/, /^\/verify$/, /^\/credits$/, /^\/stack$/];
 /** The same routes as explicit Fastify routes, so they get compression like everything else. */
-const SPA_PATHS = ["/radar", "/s/:symbol", "/proof", "/scoreboard", "/verify", "/credits"];
+const SPA_PATHS = ["/radar", "/s/:symbol", "/proof", "/scoreboard", "/verify", "/credits", "/stack"];
 const CLI_UA = /curl|wget|httpie|python|node|undici|axios|go-http|okhttp|java/i;
 const PREVIEW_UA = /twitterbot|slackbot|telegrambot|discordbot|facebookexternalhit/i;
 

@@ -52,6 +52,7 @@ export const openapi = {
         responses: { "200": { description: "History" }, "404": { description: "Unknown token" } },
       },
     },
+    "/v1/stack": { get: { summary: "The Binance Web3 API as Nightshift uses it, from the SDK telemetry: calls (24 h and all time) per module and endpoint, p50/p95 latency, doc drift, and every outcome code with its meaning and our handling", responses: { "200": { description: "Stack" } } } },
     "/v1/onchain": { get: { summary: "Everything on BSC mainnet: contracts, oracle feeds, ERC-8004 agents, forecast commitments, oracle posts, the Sunday loan, Agentic Wallet trades, ERC-8183 jobs, scores", responses: { "200": { description: "OnChain" } } } },
     "/v1/opens": {
       get: {

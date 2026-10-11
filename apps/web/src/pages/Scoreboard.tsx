@@ -104,7 +104,7 @@ export default function Scoreboard() {
       </div>
       <p className="mt-4 text-[13px] text-moon-3">
         {oc && oc.jobs.length === 0
-          ? "Payment: ERC-8183 jobs pay a forecaster only when it beats the anchor on an open. The first jobs open once the escrow is funded; nothing has been paid yet."
+          ? "Payment: an ERC-8183 job pays a forecaster only when it beats the anchor (Friday's close held to the bell) on an open. The first jobs open once the escrow is funded; nothing has been paid yet."
           : `${oc?.jobs.length ?? 0} ERC-8183 jobs on-chain.`}
       </p>
 

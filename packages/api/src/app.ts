@@ -170,13 +170,19 @@ export async function buildApp(q: Queries, opts: AppOptions = {}): Promise<Fasti
   }
 
   // ── Website data ───────────────────────────────────────────────────────────────────────────────────
-  app.get<{ Params: { token: string }; Querystring: { hours?: string } }>("/v1/history/:token", async (req, reply) => {
+  app.get<{ Params: { token: string }; Querystring: { hours?: string; anchor?: string } }>("/v1/history/:token", async (req, reply) => {
     const hours = Math.trunc(Number(req.query.hours ?? 72)) || 72;
-    const r = q.history(req.params.token, hours);
+    // ?anchor=<ms>: one open (every round aimed at it, its official open and each forecaster's last seal).
+    const anchor = req.query.anchor == null ? undefined : Number(req.query.anchor);
+    if (anchor != null && !(Number.isSafeInteger(anchor) && anchor > 1.5e12 && anchor < 4e12)) return reply.code(400).send({ error: "anchor must be an open time in ms" });
+    const r = q.history(req.params.token, hours, anchor);
     return r ?? reply.code(404).send({ error: `unknown token ${req.params.token}` });
   });
   const onchain = memo(60_000, () => q.onchain());
   app.get("/v1/onchain", async () => onchain());
+  // The Binance Web3 API as we use it, from the SDK's own telemetry: calls, latency and every outcome code.
+  const stack = memo(60_000, () => q.stack());
+  app.get("/v1/stack", async () => stack());
   const FORECASTERS = ["anchor", "echo", "nfv"] as const;
   app.get<{ Querystring: { forecaster?: string } }>("/v1/opens", async (req, reply) => {
     const f = req.query.forecaster ?? "nfv";

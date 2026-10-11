@@ -15,10 +15,12 @@ import { B402Merchant, type PriceSpec, respond, requirePayment, SqliteIdempotenc
 import type { FastifyInstance } from "fastify";
 import type { Queries } from "./queries.ts";
 
+// B402's /supported kinds name the token (extra.name) but carry no address, and several stablecoins share a
+// method on BSC, so each price names its asset exactly as the facilitator does.
 const ASSETS = [
-  { symbol: "U", address: "0xcE24439F2D9C6a2289F741120FE202248B666666", method: "eip3009" },
-  { symbol: "USD1", address: "0x8d0D000Ee44948FC98c9B98A4FA4921476f08B0d", method: "eip3009" },
-  { symbol: "USDT", address: "0x55d398326f99059fF775485246999027B3197955", method: "permit2-exact" },
+  { symbol: "U", name: "United Stables", address: "0xcE24439F2D9C6a2289F741120FE202248B666666", method: "eip3009" },
+  { symbol: "USD1", name: "World Liberty Financial USD", address: "0x8d0D000Ee44948FC98c9B98A4FA4921476f08B0d", method: "eip3009" },
+  { symbol: "USDT", name: "Tether USD", address: "0x55d398326f99059fF775485246999027B3197955", method: "permit2-exact" },
 ] as const;
 const DECIMALS = 18; // U, USD1 and USDT are all 18-decimal on BSC
 
@@ -52,7 +54,7 @@ export async function registerX402(app: FastifyInstance, q: Queries): Promise<vo
       const ok: PriceSpec[] = [];
       let lastError = "";
       for (const a of ASSETS) {
-        const p: PriceSpec = { amount: usdToUnits(usd), asset: a.address, method: a.method };
+        const p: PriceSpec = { amount: usdToUnits(usd), asset: a.address, assetName: a.name, method: a.method };
         try {
           await merchant!.requirementsFor(p);
           ok.push(p);

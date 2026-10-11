@@ -135,7 +135,7 @@ const STEPS = [
   { t: "Commit", d: "Every 30 minutes, each agent seals a Merkle root of its forecasts for all 91 stocks into ForecastBook on BNB Chain." },
   { t: "Seal", d: "Once a root is on-chain, no one can change a forecast after the fact. Not the agents, not us. Any single forecast can be checked against it." },
   { t: "Bell", d: "The official US open is the only judge. It arrives whether anyone likes the forecast or not." },
-  { t: "Score and pay", d: "Every forecast gets a CRPS score against the open. ERC-8183 escrow on BNB's own commerce contracts pays only the agents that beat a stale oracle." },
+  { t: "Score and pay", d: "Every forecast gets a CRPS score against the open. An ERC-8183 job on BNB's own commerce contracts pays a forecaster only if it beat the no-skill baseline, Friday's close held to the bell." },
 ];
 
 export default function HowItWorks() {
@@ -177,7 +177,7 @@ export default function HowItWorks() {
     <section ref={root} className="relative border-t border-rule bg-night-0 py-[clamp(5rem,9vw,8.5rem)]" aria-labelledby="how-title">
       <div className="mx-auto max-w-[1320px] px-4 sm:px-6">
         <Heading id="how-title" kicker="How it works" title="How a forecast becomes a price.">
-          Three AI agents forecast every stock. Reality grades them. Contracts read what survives.
+          Three forecasters seal a view of every stock's next open: the last close, the token's live price, and our model. The open grades them; contracts read the weighted consensus.
         </Heading>
         <div className="mt-16 grid grid-cols-[minmax(0,1fr)] gap-14 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.3fr)] lg:gap-20">
           <ol className="relative grid gap-3">

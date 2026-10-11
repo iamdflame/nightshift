@@ -111,7 +111,7 @@ function LiveOpens() {
       .filter(([, e]) => e.nfv != null && e.anchor != null)
       .map(([open, e]) => {
         const rows = (o?.opens ?? []).filter((x) => new Date(x.anchorTime).toISOString() === open);
-        return { open, nfv: e.nfv!, stale: e.anchor!, n: e.nfvN ?? 0, inBand: rows.filter((x) => x.covered).length, total: rows.length };
+        return { open, nfv: e.nfv!, stale: e.anchor!, echo: e.echo ?? null, n: e.nfvN ?? 0, inBand: rows.filter((x) => x.covered).length, total: rows.length };
       })
       .sort((a, b) => a.open.localeCompare(b.open));
   }, [r, o]);
@@ -130,8 +130,13 @@ function LiveOpens() {
               <span className="num">{cut < 0 ? "−" : "+"}{Math.abs(cut).toFixed(0)}%</span>
             </p>
             <p className="mt-2 text-[14px] text-moon-2">
-              forecast error vs a stale oracle (<span className="num">{num(x.nfv, 1)}</span> vs <span className="num">{num(x.stale, 1)}</span> bps, {x.n.toLocaleString("en-US")} forecasts)
+              forecast error vs Friday's close held to the bell (<span className="num">{num(x.nfv, 1)}</span> vs <span className="num">{num(x.stale, 1)}</span> bps, {x.n.toLocaleString("en-US")} forecasts)
             </p>
+            {x.echo != null && (
+              <p className="mt-1 text-[13px] text-moon-3">
+                The token's own price scored <span className="num">{num(x.echo, 1)}</span> bps: most of the gain is reading the 24/7 market at all; the model adds the band.
+              </p>
+            )}
             {x.total > 0 && (
               <p className="mt-3 border-t border-rule pt-3 text-[13px] text-moon-3">
                 At the bell, <span className="num text-moon-1">{x.inBand}</span> of <span className="num text-moon-1">{x.total}</span> stocks opened inside NFV's 90% band.
@@ -154,8 +159,8 @@ export default function RealityScores() {
       </div>
       <div className="mx-auto max-w-[1320px] px-4 sm:px-6">
         <Heading id="scores-title" kicker="Measured, not claimed" title="Reality scores every forecast.">
-          Out of sample, over {a.n.toLocaleString("en-US")} forecasts since bStocks launched, Nightshift's error is {Math.round((1 - a.crps_v2_bps / a.crps_stale_bps) * 100)}% lower than the stale oracle lenders
-          use today. Deep in the weekend nobody knows much; as the restart approaches, the 24/7 market starts telling the truth, and Nightshift reads it.
+          Out of sample, over {a.n.toLocaleString("en-US")} forecasts since bStocks launched, Nightshift's error is {Math.round((1 - a.crps_v2_bps / a.crps_stale_bps) * 100)}% lower than Friday's close held to the bell, and {Math.round((1 - a.crps_v2_bps / a.crps_echo_bps) * 100)}% lower than
+          the token's own price. Deep in the weekend nobody knows much; as the restart approaches, the 24/7 market starts telling the truth, and Nightshift reads it.
         </Heading>
         <div className="mt-14 grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
           <BacktestChart />

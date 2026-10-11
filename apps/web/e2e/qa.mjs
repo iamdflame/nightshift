@@ -4,7 +4,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { chromium } from "playwright";
 
 const base = process.argv[2] ?? "http://127.0.0.1:5173";
-const routes = ["/", "/radar", "/s/NVDAB", "/proof", "/scoreboard", "/verify", "/credits", "/nope"];
+const routes = ["/", "/radar", "/s/NVDAB", "/proof", "/scoreboard", "/verify", "/stack", "/credits", "/nope"];
 const sizes = [
   { name: "desktop", viewport: { width: 1440, height: 900 } },
   { name: "phone", viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 },

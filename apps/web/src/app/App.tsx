@@ -15,6 +15,7 @@ const Proof = lazy(() => import("@/pages/Proof"));
 const Scoreboard = lazy(() => import("@/pages/Scoreboard"));
 const Verify = lazy(() => import("@/pages/Verify"));
 const Credits = lazy(() => import("@/pages/Credits"));
+const Stack = lazy(() => import("@/pages/Stack"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 export function App() {
@@ -29,6 +30,7 @@ export function App() {
           <Route path="scoreboard" element={<Scoreboard />} />
           <Route path="verify" element={<Verify />} />
           <Route path="credits" element={<Credits />} />
+          <Route path="stack" element={<Stack />} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>

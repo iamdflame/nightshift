@@ -160,7 +160,7 @@ export default function Verify() {
         detail: (
           <div className="grid gap-1.5">
             <p>
-              {p.proof.length} sibling hashes, folded pairwise (sorted, like OpenZeppelin MerkleProof) over {Math.round(2 ** p.proof.length)} slots.
+              {p.proof.length} sibling hashes, folded pairwise (sorted, like OpenZeppelin MerkleProof) up to the root.
             </p>
             <HashChip value={h} kind="root" label="Computed root" />
             <HashChip value={p.committedRoot} kind="root" label="Committed root" />

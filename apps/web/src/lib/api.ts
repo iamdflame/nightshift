@@ -175,6 +175,12 @@ export interface History {
   points: HistoryPoint[];
   klines: { t: number; close: number }[];
   commits: { round: number; t: number; forecaster: "anchor" | "echo" | "nfv"; fairValue: number; lower: number; upper: number; chain: string; tx: string | null }[];
+  /** The open these rounds aim at (the next one, or the `anchor` asked for). */
+  anchor: number;
+  /** That open's official price per token once scored, else null. */
+  realized: number | null;
+  /** Each forecaster's last forecast before that open, with its error against it once scored. */
+  lastCommits: (History["commits"][number] & { errBps: number | null; covered: boolean | null })[];
 }
 
 export interface OnChain {
@@ -234,6 +240,31 @@ export interface OpenRow {
   covered: boolean;
 }
 
+/** /v1/stack — the Binance Web3 API as Nightshift calls it, from the SDK's own telemetry. */
+export interface StackEndpoint {
+  endpoint: string;
+  method: string;
+  calls24h: number;
+  callsAll: number;
+  notSent: number;
+  p50Ms: number | null;
+  p95Ms: number | null;
+  latencyWindow: "24h" | "all" | null;
+  lastAt: number | null;
+  codes: Record<string, number>;
+  drift: { undocumented: string[]; missing: string[] };
+}
+export interface Stack {
+  generatedAt: string;
+  since: number | null;
+  totalCalls: number;
+  calls24h: number;
+  notSent: { total: number; last24h: number };
+  sdk: { modules: number; endpoints: number };
+  modules: { module: string; calls24h: number; callsAll: number; lastAt: number | null; sdkEndpoints: { method: string; path: string }[]; endpoints: StackEndpoint[] }[];
+  codes: { code: string; name: string | null; ok: boolean; sent: boolean; count: number; count24h: number; firstAt: number; lastAt: number; modules: string[]; meaning: string; ourHandling: string }[];
+}
+
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(path, { headers: { accept: "application/json" } });
   if (!res.ok) {
@@ -252,8 +283,9 @@ export const api = {
   proof: (round: number, forecaster: string, token: string) => get<Proof>(`/v1/rounds/${round}/proof/${forecaster}/${encodeURIComponent(token)}`),
   scoreboard: () => get<{ scoreboard: ScoreRow[] }>("/v1/scoreboard"),
   results: () => get<{ results: ResultRow[] }>("/v1/results"),
-  history: (key: string, hours = 72) => get<History>(`/v1/history/${encodeURIComponent(key)}?hours=${hours}`),
+  history: (key: string, hours = 72, anchor?: number) => get<History>(`/v1/history/${encodeURIComponent(key)}?hours=${hours}${anchor ? `&anchor=${anchor}` : ""}`),
   onchain: () => get<OnChain>("/v1/onchain"),
+  stack: () => get<Stack>("/v1/stack"),
   opens: (forecaster = "nfv") => get<{ opens: OpenRow[] }>(`/v1/opens?forecaster=${forecaster}`),
   receipt: (tx: string, trader?: string) => get<Receipt>(`/v1/receipts/${tx}${trader ? `?trader=${trader}` : ""}`),
   x402: () => get<{ status: string; priceUsd: string; payTo: string | null; accepts: { asset: string; symbol?: string; method?: string; amount: string }[] }>("/x402/price"),

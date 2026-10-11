@@ -8,7 +8,9 @@ export const useRadar = () => useQuery({ queryKey: ["radar"], queryFn: api.radar
 export const useFairValue = (key: string) => useQuery({ queryKey: ["fv", key], queryFn: () => api.fairValue(key), refetchInterval: 60_000, ...live });
 export const useWhich = (ticker: string) => useQuery({ queryKey: ["which", ticker], queryFn: () => api.which(ticker), enabled: ticker.length > 0, refetchInterval: 120_000, ...live });
 export const useRounds = (limit = 50) => useQuery({ queryKey: ["rounds", limit], queryFn: () => api.rounds(limit), refetchInterval: 60_000, ...live });
-export const useHistory = (key: string, hours = 72) => useQuery({ queryKey: ["history", key, hours], queryFn: () => api.history(key, hours), refetchInterval: 120_000, ...live });
+export const useHistory = (key: string, hours = 72, anchor?: number) =>
+  useQuery({ queryKey: ["history", key, hours, anchor], queryFn: () => api.history(key, hours, anchor), refetchInterval: 120_000, ...live });
+export const useStack = () => useQuery({ queryKey: ["stack"], queryFn: api.stack, refetchInterval: 120_000, ...live });
 export const useOnchain = () => useQuery({ queryKey: ["onchain"], queryFn: api.onchain, refetchInterval: 120_000, ...live });
 export const useOpens = (forecaster = "nfv") => useQuery({ queryKey: ["opens", forecaster], queryFn: () => api.opens(forecaster), staleTime: 300_000, ...live });
 export const useScoreboard = () => useQuery({ queryKey: ["scoreboard"], queryFn: api.scoreboard, staleTime: 300_000, ...live });

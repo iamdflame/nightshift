@@ -4,9 +4,11 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
-import { BSC, hoursToOpen, nextRegularOpen, sessionAt } from "@nightshift/core";
+import { BSC, hoursToOpen, lastRegularClose, nextRegularOpen, sessionAt } from "@nightshift/core";
 import { MerkleTree, scoreboard } from "@nightshift/network";
+import { ENDPOINTS } from "@nightshift/sdk";
 import { DEFAULT_DB_PATH } from "@nightshift/tape";
+import { noteFor, OK_CODES } from "./stack.ts";
 
 export interface ConsensusRow {
   round: number;
@@ -304,22 +306,29 @@ export class Queries {
    * One token's recent history for the forecast fan: consensus per round (fair value + band aimed at
    * that round's anchor), the nfv view of the token price and last close, hourly CEX closes, and every
    * forecaster's commit for the next open (with its on-chain status and tx).
+   *
+   * With `anchor` (an open, ms epoch) the answer is that one open instead of the last `hours`: every round
+   * aimed at it, the hourly closes over its dark window, the official open per token once it is scored
+   * (`realized`, null until then) and each forecaster's last forecast before it, with its error against
+   * that open (`lastCommits`). Without it, `anchor` is the next open and `realized` is null.
    */
-  history(key: string, hours = 72) {
+  history(key: string, hours = 72, anchor?: number) {
     const inst = this.db
       .prepare(`SELECT address, symbol, cex_symbol FROM instruments WHERE chain_id = '56' AND (lower(symbol) = lower(?1) OR address = lower(?1)) ORDER BY issuer = 'bstocks' DESC LIMIT 1`)
       .get(key) as { address: string; symbol: string; cex_symbol: string | null } | undefined;
     if (!inst) return null;
     const since = Date.now() - Math.min(Math.max(hours, 1), 24 * 14) * 3600_000;
+    const nextAnchor = nextRegularOpen(Date.now());
+    const target = anchor ?? nextAnchor;
     const points = (
       this.db
         .prepare(
           `SELECT c.round, c.computed_at t, c.session, c.state, c.anchor_time, c.fair_value, c.lower, c.upper, c.chain_status, c.tx_hash,
                   f.token_price, f.last_close * f.basis AS last_close_tok
            FROM consensus c LEFT JOIN forecasts f ON f.round = c.round AND f.token = c.token AND f.forecaster = 'nfv'
-           WHERE c.token = ? AND c.computed_at >= ? ORDER BY c.round`,
+           WHERE c.token = ? AND ${anchor == null ? "c.computed_at >= ?" : "c.anchor_time = ?"} ORDER BY c.round`,
         )
-        .all(inst.address, since) as Record<string, number | string | null>[]
+        .all(inst.address, anchor ?? since) as Record<string, number | string | null>[]
     ).map((r) => ({
       round: r.round as number,
       t: r.t as number,
@@ -334,13 +343,13 @@ export class Queries {
       chainStatus: r.chain_status as string,
       tx: (r.tx_hash as string | null) ?? null,
     }));
+    // One open's window runs from the close before it (or its first round, if earlier) to the open itself.
+    const from = anchor == null ? since : Math.min(points[0]?.t ?? Infinity, lastRegularClose(anchor - 60_000)) - 2 * 3600_000;
     const klines = inst.cex_symbol
-      ? (this.db.prepare(`SELECT open_time t, close FROM klines WHERE symbol = ? AND interval = '1h' AND open_time >= ? ORDER BY open_time`).all(inst.cex_symbol, since) as {
-          t: number;
-          close: number;
-        }[])
+      ? (this.db
+          .prepare(`SELECT open_time t, close FROM klines WHERE symbol = ? AND interval = '1h' AND open_time >= ? AND open_time <= ? ORDER BY open_time`)
+          .all(inst.cex_symbol, from, anchor ?? Number.MAX_SAFE_INTEGER) as { t: number; close: number }[])
       : [];
-    const nextAnchor = nextRegularOpen(Date.now());
     const commits = (
       this.db
         .prepare(
@@ -348,7 +357,7 @@ export class Queries {
            FROM forecasts f JOIN rounds r ON r.round = f.round LEFT JOIN commitments c ON c.round = f.round AND c.forecaster = f.forecaster
            WHERE f.token = ? AND f.anchor_time = ? ORDER BY f.round`,
         )
-        .all(inst.address, nextAnchor) as Record<string, number | string | null>[]
+        .all(inst.address, target) as Record<string, number | string | null>[]
     ).map((r) => ({
       round: r.round as number,
       t: r.t as number,
@@ -359,7 +368,23 @@ export class Queries {
       chain: (r.chain_status as string | null) ?? "local",
       tx: (r.tx_hash as string | null) ?? null,
     }));
-    return { token: inst.address, symbol: inst.symbol, nextAnchor, points, klines, commits };
+    // The official open per token, as opens() derives it: the scored open per share × the token's basis.
+    const scored = this.db
+      .prepare(
+        `SELECT s.realized_open * f.basis AS realized FROM forecasts f JOIN scores s ON s.round = f.round AND s.forecaster = f.forecaster AND s.token = f.token
+         WHERE f.token = ? AND f.anchor_time = ? ORDER BY f.round DESC LIMIT 1`,
+      )
+      .get(inst.address, target) as { realized: number } | undefined;
+    const realized = scored ? num(scored.realized) : null;
+    // Each forecaster's last forecast before the open; its error is in log terms, like the scores' abs_err (signed: + is above the open).
+    const last = new Map<string, (typeof commits)[number]>();
+    for (const c of commits) if (c.t < target) last.set(c.forecaster, c);
+    const lastCommits = [...last.values()].map((c) => ({
+      ...c,
+      errBps: realized == null ? null : num(Math.log(c.fairValue / realized) * 1e4, 1),
+      covered: realized == null ? null : realized >= c.lower && realized <= c.upper,
+    }));
+    return { token: inst.address, symbol: inst.symbol, nextAnchor, anchor: target, points, klines, commits, realized, lastCommits };
   }
 
   /** Everything on BSC mainnet, as JSON (the same facts as docs/LIVE.md): contracts, agents, commits, posts, loan, trades, jobs, scores. */
@@ -431,6 +456,133 @@ export class Queries {
       scores: (
         this.db.prepare(`SELECT anchor_time, forecaster, COUNT(*) n, AVG(crps) c, AVG(abs_err) e, AVG(covered) cov FROM scores GROUP BY anchor_time, forecaster ORDER BY anchor_time DESC, forecaster`).all() as Record<string, number | string>[]
       ).map((r) => ({ anchorTime: r.anchor_time as number, forecaster: r.forecaster as string, n: r.n as number, crpsBps: num((r.c as number) * 1e4, 2), maeBps: num((r.e as number) * 1e4, 2), coverage: num(r.cov as number, 4) })),
+    };
+  }
+
+  /**
+   * The Binance Web3 API as Nightshift uses it, read from the SDK's own telemetry (`dx_calls`, one row per logical
+   * call with its retries folded in). A call our circuit breaker refused before sending (`circuit_open`) never
+   * reached Binance: it is counted as `notSent` and in `codes`, never as a call. Latency is the nearest-rank p50/p95
+   * (as the SDK's summarize()) over the last 24 h, or over all time for an endpoint with no call in the last 24 h.
+   * No table yet → zero calls, with the SDK's coverage still listed.
+   */
+  stack(now = Date.now()) {
+    const day = now - 86_400_000;
+    const NOT_SENT = "circuit_open";
+    const has = Boolean(this.db.prepare(`SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'dx_calls'`).get());
+    type Row = { module: string; endpoint: string; method: string };
+    const all = <T>(sql: string, ...args: (string | number)[]): T[] => (has ? (this.db.prepare(sql).all(...args) as T[]) : []);
+
+    const outcomes = all<Row & { code: string; n: number; n24: number; first: number; last: number }>(
+      `SELECT module, endpoint, method, COALESCE(api_code, 'HTTP ' || http_status, error_kind, 'unknown') code,
+              COUNT(*) n, SUM(ts >= ?) n24, MIN(ts) first, MAX(ts) last
+       FROM dx_calls GROUP BY 1, 2, 3, 4`,
+      day,
+    );
+    const latencySql = (where: string) =>
+      `SELECT module, endpoint, method, MIN(CASE WHEN rn >= n * 0.5 THEN latency_ms END) p50, MIN(CASE WHEN rn >= n * 0.95 THEN latency_ms END) p95
+       FROM (SELECT module, endpoint, method, latency_ms,
+                    ROW_NUMBER() OVER (PARTITION BY module, endpoint, method ORDER BY latency_ms) rn,
+                    COUNT(*) OVER (PARTITION BY module, endpoint, method) n
+             FROM dx_calls WHERE ${where} AND COALESCE(error_kind, '') <> '${NOT_SENT}')
+       GROUP BY module, endpoint, method`;
+    type Lat = Row & { p50: number; p95: number };
+    const recent = all<Lat>(latencySql("ts >= ?"), day);
+    const drift = all<Row & { u: string; m: string }>(
+      `SELECT module, endpoint, method, undocumented_fields u, missing_fields m FROM dx_calls
+       WHERE undocumented_fields <> '[]' OR missing_fields <> '[]' GROUP BY 1, 2, 3, 4, 5`,
+    );
+
+    const key = (r: Row) => `${r.module} ${r.method} ${r.endpoint}`;
+    interface Ep {
+      endpoint: string;
+      method: string;
+      calls24h: number;
+      callsAll: number;
+      notSent: number;
+      p50Ms: number | null;
+      p95Ms: number | null;
+      latencyWindow: "24h" | "all" | null;
+      lastAt: number | null;
+      codes: Record<string, number>;
+      drift: { undocumented: string[]; missing: string[] };
+    }
+    const eps = new Map<string, Ep & { module: string }>();
+    for (const o of outcomes) {
+      const e = eps.get(key(o)) ?? { module: o.module, endpoint: o.endpoint, method: o.method, calls24h: 0, callsAll: 0, notSent: 0, p50Ms: null, p95Ms: null, latencyWindow: null, lastAt: null, codes: {}, drift: { undocumented: [], missing: [] } };
+      eps.set(key(o), e);
+      if (o.code === NOT_SENT) {
+        e.notSent += o.n;
+        continue;
+      }
+      e.callsAll += o.n;
+      e.calls24h += o.n24;
+      e.codes[o.code] = o.n;
+      e.lastAt = Math.max(e.lastAt ?? 0, o.last);
+    }
+    const setLatency = (rows: Lat[], window: "24h" | "all") => {
+      for (const l of rows) {
+        const e = eps.get(key(l));
+        if (e && l.p50 != null) Object.assign(e, { p50Ms: Math.round(l.p50), p95Ms: Math.round(l.p95), latencyWindow: window });
+      }
+    };
+    setLatency(recent, "24h");
+    // Endpoints quiet for a day (e.g. the swap and broadcast behind a real trade): all time, one indexed lookup each.
+    for (const e of eps.values()) {
+      if (e.calls24h === 0 && e.callsAll > 0) setLatency(all<Lat>(latencySql("module = ? AND endpoint = ? AND method = ?"), e.module, e.endpoint, e.method), "all");
+    }
+    for (const d of drift) {
+      const e = eps.get(key(d));
+      if (!e) continue;
+      e.drift.undocumented = [...new Set([...e.drift.undocumented, ...(JSON.parse(d.u) as string[])])].sort();
+      e.drift.missing = [...new Set([...e.drift.missing, ...(JSON.parse(d.m) as string[])])].sort();
+    }
+
+    // Every SDK module, in the SDK's order, then anything the table has that the SDK doesn't (none today).
+    const sdk = ENDPOINTS as unknown as Record<string, Record<string, { method: string; path: string }>>;
+    const names = [...new Set([...Object.keys(sdk), ...[...eps.values()].map((e) => e.module)])];
+    const modules = names.map((module) => {
+      const endpoints = [...eps.values()].filter((e) => e.module === module).sort((a, b) => b.callsAll - a.callsAll || a.endpoint.localeCompare(b.endpoint));
+      const lastAt = Math.max(0, ...endpoints.map((e) => e.lastAt ?? 0));
+      return {
+        module,
+        calls24h: endpoints.reduce((s, e) => s + e.calls24h, 0),
+        callsAll: endpoints.reduce((s, e) => s + e.callsAll, 0),
+        lastAt: lastAt || null,
+        sdkEndpoints: Object.values(sdk[module] ?? {}).map((d) => ({ method: d.method, path: d.path })),
+        endpoints: endpoints.map(({ module: _m, ...e }) => e),
+      };
+    });
+
+    const byCode = new Map<string, { code: string; count: number; count24h: number; firstAt: number; lastAt: number; modules: Set<string> }>();
+    for (const o of outcomes) {
+      const c = byCode.get(o.code) ?? { code: o.code, count: 0, count24h: 0, firstAt: o.first, lastAt: o.last, modules: new Set<string>() };
+      byCode.set(o.code, c);
+      c.count += o.n;
+      c.count24h += o.n24;
+      c.firstAt = Math.min(c.firstAt, o.first);
+      c.lastAt = Math.max(c.lastAt, o.last);
+      c.modules.add(o.module);
+    }
+    const codes = [...byCode.values()]
+      .sort((a, b) => b.count - a.count)
+      .map((c) => {
+        const modulesSeen = [...c.modules].sort();
+        const note = noteFor(c.code, modulesSeen[0] ?? "");
+        return { code: c.code, name: note.name, ok: OK_CODES.has(c.code), sent: c.code !== NOT_SENT, count: c.count, count24h: c.count24h, firstAt: c.firstAt, lastAt: c.lastAt, modules: modulesSeen, meaning: note.meaning, ourHandling: note.ourHandling };
+      });
+
+    const notSent = outcomes.filter((o) => o.code === NOT_SENT);
+    const first = outcomes.length ? Math.min(...outcomes.map((o) => o.first)) : null;
+    return {
+      generatedAt: new Date(now).toISOString(),
+      since: first,
+      totalCalls: modules.reduce((s, m) => s + m.callsAll, 0),
+      calls24h: modules.reduce((s, m) => s + m.calls24h, 0),
+      notSent: { total: notSent.reduce((s, o) => s + o.n, 0), last24h: notSent.reduce((s, o) => s + o.n24, 0) },
+      sdk: { modules: Object.keys(sdk).length, endpoints: Object.values(sdk).reduce((s, m) => s + Object.keys(m).length, 0) },
+      modules,
+      codes,
     };
   }
 

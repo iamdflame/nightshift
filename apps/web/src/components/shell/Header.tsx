@@ -14,6 +14,7 @@ export const NAV = [
   { to: "/proof", label: "On-chain proof" },
   { to: "/scoreboard", label: "Scoreboard" },
   { to: "/verify", label: "Verify" },
+  { to: "/stack", label: "Stack" },
 ] as const;
 
 /** The session clock: what the real market is doing right now, and when the bell rings. */

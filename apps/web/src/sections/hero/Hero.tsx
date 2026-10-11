@@ -190,7 +190,14 @@ export function Hero() {
               Verify a forecast
             </Link>
           </motion.div>
-          <p className="mt-10 max-w-[48ch] text-[13px] text-moon-3">Each amber streak is a real forecast sealed on BNB Chain. The stars are tonight's real sky over Wall Street, and <Suspense fallback="tonight"><MoonPhaseLabel /></Suspense>.</p>
+          <p className="mt-6 max-w-[52ch] text-[13.5px] text-moon-2">
+            Live on BNB Chain mainnet. Built on the{" "}
+            <Link to="/stack" className="text-moon-1 underline underline-offset-4 hover:text-moon-0">
+              Binance Web3 API
+            </Link>
+            , Agentic Wallet and BNB Agent Studio.
+          </p>
+          <p className="mt-6 max-w-[48ch] text-[13px] text-moon-3">Each amber streak is a real forecast sealed on BNB Chain. The stars are tonight's real sky over Wall Street, and <Suspense fallback="tonight"><MoonPhaseLabel /></Suspense>.</p>
         </div>
         {!(typeof window !== "undefined" && new URLSearchParams(window.location.search).has("og")) && (
           <div className="flex justify-start lg:justify-end">

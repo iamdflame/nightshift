@@ -47,6 +47,7 @@ describe("registerWeb", () => {
   it("serves app routes with 200 and unknown pages with the shell and a real 404", async () => {
     expect((await app.inject({ url: "/s/NVDAB", headers: BROWSER })).statusCode).toBe(200);
     expect((await app.inject({ url: "/verify?round=1", headers: BROWSER })).statusCode).toBe(200);
+    expect((await app.inject({ url: "/stack", headers: BROWSER })).statusCode).toBe(200);
     const miss = await app.inject({ url: "/nope", headers: BROWSER });
     expect(miss.statusCode).toBe(404);
     expect(miss.headers["content-type"]).toMatch(/text\/html/);

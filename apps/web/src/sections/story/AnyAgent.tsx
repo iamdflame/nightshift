@@ -23,9 +23,9 @@ function Receipt() {
     ["Received", `${num(r.amountToken, 6)} ${r.token.symbol}`],
     ["Price per token", usd(r.pricePerToken)],
     ["Per real share", usd(r.pricePerShare)],
-    ["Fair value then", r.reference ? usd(r.reference.fairValue) : "–"],
+    ["Fair value per token then", r.reference ? usd(r.reference.fairValue) : "–"],
     ["90% band", r.reference ? `${usd(r.reference.lower)} – ${usd(r.reference.upper)}` : "–"],
-    ["vs fair value", bps(r.tca.vsFairValueBps)],
+    ["Price vs fair value", r.tca.vsFairValueBps == null ? "–" : `${r.tca.vsFairValueBps >= 0 ? "+" : "−"}${Math.abs(r.tca.vsFairValueBps).toFixed(1)} bps`],
   ];
   return (
     <div ref={ref} className="relative mx-auto w-full max-w-[380px]">
