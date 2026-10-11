@@ -194,7 +194,11 @@ export default function HowItWorks() {
           </ol>
           <div className="lg:sticky lg:top-28 lg:self-start">
             <div className="card relative overflow-hidden p-4 sm:p-6">
-              <Diagram />
+              <div className="-mx-1 overflow-x-auto px-1 pb-1">
+                <div className="min-w-[620px]">
+                  <Diagram />
+                </div>
+              </div>
               <p className="mt-4 border-t border-rule pt-3 text-[12.5px] text-moon-3">Every box links to its contract or its latest transaction on BscScan.</p>
             </div>
           </div>

@@ -110,7 +110,7 @@ function Camera({ mobile }: { mobile: boolean }) {
 
 export default function Earth({ timeRef, active, mobile }: { timeRef: MutableRefObject<number>; active: boolean; mobile: boolean }) {
   return (
-    <Canvas dpr={[1, 1.5]} frameloop={active ? "always" : "never"} gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }} camera={{ fov: 34, near: 0.1, far: 50 }} aria-hidden>
+    <Canvas dpr={[1, 1.5]} frameloop={active ? "always" : "demand"} gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }} camera={{ fov: 34, near: 0.1, far: 50 }} aria-hidden>
       <Camera mobile={mobile} />
       <Suspense fallback={null}>
         <Globe timeRef={timeRef} mobile={mobile} />

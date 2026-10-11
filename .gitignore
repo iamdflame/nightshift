@@ -22,3 +22,8 @@ contracts/deployments/*.dry-run.json
 # Railway variables file (holds secrets)
 deploy/railway/railway.env
 tsconfig.tsbuildinfo
+
+# stray local tape copies
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm

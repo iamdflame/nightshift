@@ -81,7 +81,8 @@ html {
   text-rendering: optimizeLegibility;
   scrollbar-color: var(--color-night-3) var(--color-night-0);
 }
-body { min-height: 100svh; overflow-x: clip; }
+html, body { overflow-x: clip; }
+body { min-height: 100svh; }
 ::selection { background: rgb(255 178 63 / 0.35); color: var(--color-moon-0); }
 
 h1, h2, h3, .display {

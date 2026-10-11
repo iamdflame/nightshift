@@ -175,9 +175,11 @@ export function Hero() {
           </motion.div>
           <p className="mt-10 max-w-[48ch] text-[13px] text-moon-3">Each amber streak is a real forecast sealed on BNB Chain. The stars are tonight's real sky over Wall Street, and <Suspense fallback="tonight"><MoonPhaseLabel /></Suspense>.</p>
         </div>
-        <div className="flex justify-start lg:justify-end">
-          <LiveCard />
-        </div>
+        {!(typeof window !== "undefined" && new URLSearchParams(window.location.search).has("og")) && (
+          <div className="flex justify-start lg:justify-end">
+            <LiveCard />
+          </div>
+        )}
       </div>
     </section>
   );
