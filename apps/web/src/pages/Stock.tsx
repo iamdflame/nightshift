@@ -154,7 +154,7 @@ export default function Stock() {
           </h2>
           <p className="mt-1 text-[13.5px] text-moon-3">Every round sealed for this bell, newest first, like an ephemeris.</p>
           <div className="mt-4 overflow-x-auto" tabIndex={0} role="region" aria-label="Forecast ledger, scrolls sideways">
-            <table className="w-full text-[13px]">
+            <table className="w-full whitespace-nowrap text-[13px]">
               <thead className="text-moon-2">
                 <tr className="border-b border-rule">
                   <th className="py-2 pr-3 text-left font-medium">Sealed (ET)</th>

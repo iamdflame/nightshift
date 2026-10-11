@@ -60,7 +60,9 @@ export function FanChart({ h, height = 420 }: { h: History; height?: number }) {
   const bandD = `${stepD((p) => p.upper)}${[...pts].reverse().map((p, i, a) => `L${i === 0 ? x(Math.min(now, h.nextAnchor)) : x(a[i - 1]!.t)},${y(p.lower)}L${x(p.t)},${y(p.lower)}`).join("")}Z`;
   const priceD = k.map((p, i) => `${i ? "L" : "M"}${x(p.t)},${y(p.close)}`).join("");
   const last = pts[pts.length - 1]!;
-  const ticks = x.ticks(width < 640 ? 4 : 8);
+  // d3 treats the count as a hint: keep labels at least 76px apart so "Sat 8 AM" never runs into the next.
+  const ticks: Date[] = [];
+  for (const t of x.ticks(width < 640 ? 4 : 8)) if (!ticks.length || x(t) - x(ticks[ticks.length - 1]!) >= 76) ticks.push(t);
   const bis = bisector<(typeof pts)[number], number>((p) => p.t).center;
   const hp = hover != null ? pts[hover]! : null;
   const commitAt = (f: Fc, t: number) => [...byF[f]].reverse().find((c) => c.t <= t);
