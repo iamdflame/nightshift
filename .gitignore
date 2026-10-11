@@ -27,3 +27,6 @@ tsconfig.tsbuildinfo
 *.sqlite
 *.sqlite-wal
 *.sqlite-shm
+
+# web QA screenshots
+apps/web/screens/
