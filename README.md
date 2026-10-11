@@ -117,11 +117,12 @@ Two findings we didn't expect:
 
 | Live on BSC mainnet | Built and tested, not live | Designed |
 |---|---|---|
-| ForecastBook commits, oracle reports, AggregatorV3 feeds, ERC-8004 identities, the weekend loan, an Agentic Wallet buy with its receipt, 24/7 collector and scoring, Binance Web3 API feeds, the website ([LIVE.md](docs/LIVE.md)) | ERC-8183 pay-for-accuracy jobs (create, fund, submit, judge, reclaim; the first open once the escrow holds U), Infinity hook (71 Foundry tests, 7 on a mainnet fork), Venus adapter (deployed; Venus itself doesn't read it) | Third-party forecasters joining the network; licensed reference data |
+| ForecastBook commits, oracle reports, AggregatorV3 feeds, ERC-8004 identities, the weekend loan, an Agentic Wallet buy with its receipt, x402 pay-per-query (B402), 24/7 collector and scoring, Binance Web3 API feeds and their live telemetry, the website ([LIVE.md](docs/LIVE.md)) | ERC-8183 pay-for-accuracy jobs (create, fund, submit, judge, reclaim; the first open once the escrow holds U), Infinity hook (71 Foundry tests, 7 on a mainnet fork), Venus adapter (deployed; Venus itself doesn't read it) | Third-party forecasters joining the network; licensed reference data |
 
 ## Known limits
 
-- **The dark-hours point gain is modest** (−3% to −8% CRPS). The value in the dark is mostly calibrated uncertainty, which is what a lender needs.
+- **The point gain over the market is small.** Against Friday's close NFV is far better; against the token's own price it is about 1% better (−2% on dark weekends, +0.4% worse at the Sunday-night restart). The value in the dark is the calibrated band, which is what a lender needs.
+- **One reporter key.** The consensus is computed off-chain from the sealed forecasts and posted by the Scorer's key, which also owns the oracle. Each forecast is verifiable against its root; the consensus itself is not yet recomputable on-chain.
 - **The bands undercover slightly.** That's 86.6% in the weekend-dark backtest and 85.2% on the Oct 9 open, against a 90% target. They are refit as live opens are scored.
 - **No forecaster has been paid yet.** Scores are published every open; ERC-8183 jobs start once the escrow is funded with U.
 - **About 17 weekends of history** exist so far.
@@ -137,7 +138,7 @@ Live call counts, latency and every outcome code for each module: **[/stack](htt
 | RWA Data | yes (`/rwa/price`, `/rwa/underlying-market`) | prices for all 91 bStocks; session status, reference price, `tokenToShareRatio`, corporate actions | issuer-agnostic per-share pricing; corporate-action flags inside every oracle report |
 | Trading | yes (`/aggregator/quote`, `approve-transaction`, `swap`; RFQ) | quotes and our swaps | a $100 / $1k / $10k quote ladder on every token around the clock: a 24/7 probe of executable price and depth; RFQ refusals as a session signal |
 | Transaction | yes (`broadcast-transaction`) | broadcast with MEV protection | every broadcast becomes a receipt priced per real share against fair value |
-| b402 | yes (`/b402/supported`; paid endpoint live once B402 matched) | pay-per-query fair value at $0.01 | an Agentic Wallet pays an oracle |
+| b402 | yes: `GET /x402/fair-value/{symbol}` is live, $0.01 in U, USD1 or USDT, settled by the B402 facilitator | pay-per-query fair value | an Agentic Wallet pays an oracle (`scripts/x402-buy.mjs`) |
 | Market, Wallet, DeFi | SDK only (typed, tested) | not called by the running engine, which reads candles and books from Binance spot and pools from DexScreener | – |
 | Agentic Wallet + Skills | yes (a real `baw` buy with its receipt) | `baw` orders, x402 payment | a skill that turns "buy NVIDIA" into the cheapest real share, checked against the band |
 | Agent Studio / `@bnbagent/sdk` | yes (5 ERC-8004 identities; ERC-8183 jobs once funded) | ERC-8004 identities, ERC-8183 jobs | a pay-for-accuracy forecasting market with an independent scorer |

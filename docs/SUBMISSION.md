@@ -13,7 +13,7 @@ Nightshift publishes what a lender needs instead: a fair value and a calibrated 
 - **Forecasters with skin in the game.** Three ERC-8004 agents (Friday's close held to the bell, the token's live price, and our NFV model) seal Merkle roots of every forecast in `ForecastBook` every 30 minutes before the bell. The open scores them; ERC-8183 jobs on BNB's commerce contracts pay a forecaster only if it beat the no-skill baseline. Anyone can verify a sealed forecast from the browser, no wallet.
 - **Honest numbers.** Backtest: −22% error vs Friday's close, −1% vs the token's price; the model's edge is the band (87–90% coverage).
 - **Read by contracts.** `NightshiftOracle`, six Chainlink-compatible feeds and a Venus `OracleInterface` adapter, live on mainnet. Our credit vault lent against NVDAB at 10 p.m. on a Saturday, valuing it at the band's lower edge. The site asks Venus and Nightshift the same `getPrice(NVDAB)` and shows both answers.
-- **For agents.** A Wallet Skill (which NVIDIA, inside the band), receipts per real share, an MCP server and x402 pay-per-query.
+- **For agents.** A Wallet Skill (which NVIDIA, inside the band), receipts per real share, an MCP server, and x402 pay-per-query that is live: $0.01 per report, settled by Binance's B402 facilitator.
 
 **Tokenized stocks used:**
 - **bStocks (central):** all 91 on BSC, priced 24/7 from Binance Web3 RWA Data and Trading quotes, Binance spot books and BSC pools.
