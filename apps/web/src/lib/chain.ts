@@ -9,6 +9,12 @@ export const client = createPublicClient({
   batch: { multicall: true },
 });
 
+/** Unbatched reads, for contracts that only answer callers they allow (a Multicall3 hop makes them revert). */
+export const directClient = createPublicClient({
+  chain: bsc,
+  transport: fallback([http("https://bsc-dataseed.bnbchain.org"), http("https://bsc-rpc.publicnode.com")], { retryCount: 2 }),
+});
+
 
 
 export const forecastBookAbi = parseAbi([

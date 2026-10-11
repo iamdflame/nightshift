@@ -6,7 +6,7 @@ import { ago, et, num, pct, usd } from "@/lib/format";
 
 interface Answers {
   block: bigint;
-  venus: { price: number; feed: `0x${string}`; feedName: string; feedUpdatedAt: number; supplied: number; cap: number; cf: number };
+  venus: { price: number; feed: `0x${string}`; feedName: string; feedUpdatedAt: number | null; supplied: number; cap: number; cf: number };
   ours: { price: number; lower: number; upper: number; updatedAt: number; anchorTime: number };
 }
 
@@ -22,7 +22,7 @@ function useAnswers() {
     let alive = true;
     (async () => {
       try {
-        const { client, feedAbi, oracleAbi, venusAbi } = await import("@/lib/chain");
+        const { client, directClient, feedAbi, oracleAbi, venusAbi } = await import("@/lib/chain");
         const block = await client.getBlockNumber();
         const at = { blockNumber: block };
         const [vPrice, cfg, ourPrice, rep, supply, rate, cap, market] = await Promise.all([
@@ -35,12 +35,22 @@ function useAnswers() {
           client.readContract({ ...at, address: VENUS.Comptroller, abi: venusAbi, functionName: "supplyCaps", args: [VENUS.vNVDAB] }),
           client.readContract({ ...at, address: VENUS.Comptroller, abi: venusAbi, functionName: "markets", args: [VENUS.vNVDAB] }),
         ]);
-        // Venus's main source for NVDAB, and the feed behind it.
-        const [, feed] = await client.readContract({ ...at, address: cfg.oracles[0], abi: venusAbi, functionName: "tokenConfigs", args: [ADDR.NVDAB] });
-        const [round, feedName] = await Promise.all([
-          client.readContract({ ...at, address: feed, abi: feedAbi, functionName: "latestRoundData" }),
-          client.readContract({ ...at, address: feed, abi: feedAbi, functionName: "description" }),
-        ]);
+        // Venus's main source for NVDAB and the feed behind it. That feed only answers callers it allows, so it is
+        // read directly (not through Multicall3), and its age is a nice-to-have: the prices above stand without it.
+        let feed: `0x${string}` = "0x0000000000000000000000000000000000000000";
+        let feedName = "NVDAB/USD";
+        let feedUpdatedAt: number | null = null;
+        try {
+          [, feed] = await client.readContract({ ...at, address: cfg.oracles[0], abi: venusAbi, functionName: "tokenConfigs", args: [ADDR.NVDAB] });
+          const [round, name] = await Promise.all([
+            directClient.readContract({ address: feed, abi: feedAbi, functionName: "latestRoundData" }),
+            directClient.readContract({ address: feed, abi: feedAbi, functionName: "description" }),
+          ]);
+          feedName = name;
+          feedUpdatedAt = Number(round[3]) * 1000;
+        } catch {
+          // keep the prices; the feed's age is left out
+        }
         if (!alive) return;
         setA({
           block,
@@ -48,7 +58,7 @@ function useAnswers() {
             price: Number(vPrice) / 1e18,
             feed,
             feedName,
-            feedUpdatedAt: Number(round[3]) * 1000,
+            feedUpdatedAt,
             supplied: Number((supply * rate) / 10n ** 18n) / 1e18,
             cap: Number(cap) / 1e18,
             cf: Number(market[1]) / 1e18,
@@ -119,7 +129,7 @@ export function VenusContrast({ className = "" }: { className?: string }) {
             a
               ? [
                   <>
-                    From the <span className="num">{a.venus.feedName}</span> feed of the token itself, updated {ago(a.venus.feedUpdatedAt)}.
+                    From the <span className="num">{a.venus.feedName}</span> feed of the token itself{a.venus.feedUpdatedAt ? `, updated ${ago(a.venus.feedUpdatedAt)}` : ""}.
                   </>,
                   <>
                     <span className="num text-moon-1">{num(a.venus.supplied, 0)}</span> NVDAB posted as collateral (cap <span className="num">{num(a.venus.cap, 0)}</span>), counted at{" "}
