@@ -6,7 +6,7 @@ Everything here is ready except your voice. The picture is cut, captioned, score
 
 | File | What it is |
 |---|---|
-| **`nightshift-demo-final.mp4`** | **Upload this one.** Your ElevenLabs voice, synced: 3:16, 1080p30, H.264 + AAC 320k, mastered to -14.4 LUFS / -1.5 dBTP (YouTube's level), music ducked under speech, burned-in captions on the measured timings. |
+| **`nightshift-demo-final.mp4`** | **Upload this one.** Your ElevenLabs voice, synced: 3:00, 1080p30, H.264 + AAC 320k, mastered to -14.4 LUFS / -1.5 dBTP (YouTube's level), music ducked under speech, burned-in captions on the measured timings. |
 | `nightshift-demo.mp4` | The same render before the final +2 dB loudness pass |
 | `captions.srt` | The same captions as a separate track (YouTube → Subtitles → upload file) |
 | `thumbnail.png` | 1280×720 YouTube thumbnail |
