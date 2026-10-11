@@ -18,7 +18,7 @@ const MODULES: { key: string; name: string; use: string; unexpected: string; ref
     use: "Token prices for every bStock, and each stock's underlying market: session status, reference price, share ratio.",
     unexpected: "Sizes the sell side of the quote ladder. The oracle itself prices from Binance spot books and BSC pools.",
     refused:
-      "Binance doesn't serve these endpoints to our production server (Railway, EU West): it answers 40304, compliance restriction. The same keys work from our development machine, which made the successful calls counted here. We don't route around it: the poller asks again every 30 minutes, and the oracle prices from Binance spot books and BSC pools.",
+      "Binance is refusing these endpoints to our server right now: 40304, compliance restriction. We don't route around it: the poller asks again every 30 minutes, and the oracle keeps pricing from Binance spot books and BSC pools.",
   },
   {
     key: "trading",
@@ -26,7 +26,7 @@ const MODULES: { key: string; name: string; use: string; unexpected: string; ref
     use: "Quotes, approvals and swaps through the aggregator (and RFQ for Ondo).",
     unexpected: "A $100 / $1k / $10k quote ladder on every token around the clock: a probe of the price you can actually execute at 3 a.m., and how deep the book is. RFQ refusals tell us when an issuer's market is closed.",
     refused:
-      "A $100 / $1k / $10k quote ladder on every token, every 10 minutes: a probe of the price you can actually execute at 3 a.m. Binance refuses tokenized-stock quotes to our production server too (40304); the successful quotes and our real swaps counted here ran from our development machine.",
+      "A $100 / $1k / $10k quote ladder on every token, every 10 minutes: a probe of the price you can actually execute at 3 a.m. Binance is refusing tokenized-stock quotes to our server right now (40304); the ladder resumes when it answers.",
   },
   {
     key: "transaction",
@@ -189,8 +189,8 @@ export default function Stack() {
             <>
               <span className="num text-moon-0">{s.calls24h.toLocaleString("en-US")}</span> calls in the last 24 hours,{" "}
               <span className="num text-moon-0">{s.totalCalls.toLocaleString("en-US")}</span> since {s.since ? et(s.since) : "–"} (our development machine first, then production), logged by our own SDK as they
-              happen. It types all {s.sdk.endpoints} endpoints of the {s.sdk.modules} modules; the running oracle calls {calledEndpoints} endpoints in {live} modules, marked below with their real traffic. Its prices
-              come from Binance spot books and BSC pools; the API gives it executable quotes, broadcasts and payments.
+              happen. Binance refused RWA Data and tokenized-stock quotes to our first server, in the Netherlands (the 40304 rows below); they answer since we moved it to Singapore on Oct 11. It types all {s.sdk.endpoints} endpoints of the {s.sdk.modules} modules; the running oracle calls {calledEndpoints} endpoints in {live} modules, marked below with their real traffic. Its prices
+              come from Binance spot books and BSC pools; the API gives it token prices and market status, executable quotes, broadcasts and payments.
             </>
           ) : isError ? (
             "The live telemetry couldn't load."

@@ -70,9 +70,9 @@ export const CODE_NOTES: Record<string, CodeNote> = {
   "50001": SERVER,
   "40304": {
     meaning:
-      "Compliance restriction: Binance doesn't serve the RWA endpoints to our production host (Railway, EU West). The same keys get prices from our development machine; the docs don't list where RWA Data is available.",
+      "Compliance restriction. Binance refused RWA Data and tokenized-stock quotes to our first production host in Railway's EU West region (the Netherlands, a restricted region) from Oct 11 01:42 UTC; the docs don't list where these endpoints are available. Since we moved the server to Singapore (Oct 11 08:33 UTC) they answer.",
     ourHandling:
-      "Never retried and never routed around. The RWA pollers back off to one try every 30 minutes, the quote ladder sizes its sells from BSC pool prices, and the oracle prices from Binance spot books and pools.",
+      "Never retried and never routed around: the RWA pollers back off to one try every 30 minutes, the quote ladder sizes its sells from BSC pool prices, and the oracle keeps pricing from Binance spot books and pools. We moved the server to a region Binance serves.",
   },
   "HTTP 414": {
     meaning: "URI Too Long, with no API envelope: 165 token addresses in one RWA price query string. The docs state no batch limit.",

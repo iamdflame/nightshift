@@ -1,6 +1,6 @@
 # Nightshift, live on BSC mainnet
 
-Generated 2026-10-11T04:17:40Z from `https://nightshift-production-f4e3.up.railway.app/v1/onchain` (`pnpm exec tsx scripts/live-proof.ts https://nightshift-production-f4e3.up.railway.app`), which lists only transaction hashes the system recorded. Every link opens on BscScan; no wallet needed. The always-current version is the site's [On-chain proof](https://nightshift-production-f4e3.up.railway.app/proof) page, and any sealed forecast can be checked from your browser at [/verify](https://nightshift-production-f4e3.up.railway.app/verify).
+Generated 2026-10-11T08:36:43Z from `https://nightshift-production-f4e3.up.railway.app/v1/onchain` (`pnpm exec tsx scripts/live-proof.ts https://nightshift-production-f4e3.up.railway.app`), which lists only transaction hashes the system recorded. Every link opens on BscScan; no wallet needed. The always-current version is the site's [On-chain proof](https://nightshift-oracle.vercel.app/proof) page, and any sealed forecast can be checked from your browser at [/verify](https://nightshift-oracle.vercel.app/verify).
 
 ## Contracts
 
@@ -35,28 +35,28 @@ Each row: a forecaster's Merkle roots, each covering its forecasts for every bSt
 
 | Open (UTC) | Forecaster | Roots committed | Latest commit |
 |---|---|---|---|
-| 2026-10-12T13:30:00Z | anchor | 64 (rounds 29859690–29861532) | [tx](https://bscscan.com/tx/0x4cdac4191a55d3f4389396d8177338afa898ef9331ad9cabda132317e41593d0) |
-| 2026-10-12T13:30:00Z | echo | 64 (rounds 29859690–29861532) | [tx](https://bscscan.com/tx/0x642914edecea2c901524e2b0d6f9ba58faf5f2c43f5be72b604bcaf5b38749a1) |
-| 2026-10-12T13:30:00Z | nfv | 64 (rounds 29859690–29861532) | [tx](https://bscscan.com/tx/0x52951d5814f72deeee2267457be1d34bf53da113d4222fe6924dba6e068a3bea) |
+| 2026-10-12T13:30:00Z | anchor | 79 (rounds 29859690–29861794) | [tx](https://bscscan.com/tx/0x0db1e00430bc7eb0a077fd2c0e6a996566e908fb557ff2dd371c081f79b64159) |
+| 2026-10-12T13:30:00Z | echo | 79 (rounds 29859690–29861794) | [tx](https://bscscan.com/tx/0xb8eb1f43d591e63ad2b6b5b52839fad2db0903490982d4acf96b0b2ab5ae7336) |
+| 2026-10-12T13:30:00Z | nfv | 79 (rounds 29859690–29861794) | [tx](https://bscscan.com/tx/0xefa9cab6d97c325f64be92885618702479bdb36a9c8733f7fcb3de97c8f839c4) |
 
 ## Oracle reports (NightshiftOracle)
 
-153 reports in 12 transactions so far. The most recent:
+330 reports in 28 transactions so far. The most recent:
 
 | Token | Round | Fair value | 90% next-open band | Posted | Tx |
 |---|---|---|---|---|---|
-| AAPLB | 29861532 | $336.13 | $333.63 – $338.24 | 2026-10-11T04:12:53Z | [tx](https://bscscan.com/tx/0x67205f6f7a38859f31a80d4b8dc4a1e7fb33b089328c37d6073046ae54424781) |
-| COINB | 29861532 | $180.24 | $171.82 – $187.62 | 2026-10-11T04:12:53Z | [tx](https://bscscan.com/tx/0x67205f6f7a38859f31a80d4b8dc4a1e7fb33b089328c37d6073046ae54424781) |
-| NVDAB | 29861532 | $229.90 | $225.09 – $234.01 | 2026-10-11T04:12:53Z | [tx](https://bscscan.com/tx/0x67205f6f7a38859f31a80d4b8dc4a1e7fb33b089328c37d6073046ae54424781) |
-| QQQB | 29861532 | $751.01 | $741.78 – $758.84 | 2026-10-11T04:12:53Z | [tx](https://bscscan.com/tx/0x67205f6f7a38859f31a80d4b8dc4a1e7fb33b089328c37d6073046ae54424781) |
-| SPYB | 29861532 | $778.66 | $773.45 – $783.07 | 2026-10-11T04:12:53Z | [tx](https://bscscan.com/tx/0x67205f6f7a38859f31a80d4b8dc4a1e7fb33b089328c37d6073046ae54424781) |
-| TSLAB | 29861532 | $382.51 | $375.95 – $388.10 | 2026-10-11T04:12:53Z | [tx](https://bscscan.com/tx/0x67205f6f7a38859f31a80d4b8dc4a1e7fb33b089328c37d6073046ae54424781) |
-| ALABB | 29861520 | $341.49 | $324.19 – $356.71 | 2026-10-11T04:00:03Z | [tx](https://bscscan.com/tx/0x3448f317151f03dc314afbc66d6553bda235bab4c4514db732fcb160ff274b6f) |
-| ASTSB | 29861520 | $50.76 | $49.16 – $52.14 | 2026-10-11T04:00:03Z | [tx](https://bscscan.com/tx/0x3448f317151f03dc314afbc66d6553bda235bab4c4514db732fcb160ff274b6f) |
-| CYPHB | 29861499 | $2.96 | $2.77 – $3.14 | 2026-10-11T03:39:29Z | [tx](https://bscscan.com/tx/0xaeeef02630c43b6d485d699cdaf901f9aa522355fb90488b1837e8e58d2c285f) |
-| MVLLB | 29861499 | $38.48 | $33.99 – $42.70 | 2026-10-11T03:39:29Z | [tx](https://bscscan.com/tx/0xaeeef02630c43b6d485d699cdaf901f9aa522355fb90488b1837e8e58d2c285f) |
-| SOXLB | 29861499 | $139.36 | $126.05 – $151.60 | 2026-10-11T03:39:29Z | [tx](https://bscscan.com/tx/0xaeeef02630c43b6d485d699cdaf901f9aa522355fb90488b1837e8e58d2c285f) |
-| SOXSB | 29861499 | $34.42 | $30.88 – $37.71 | 2026-10-11T03:39:29Z | [tx](https://bscscan.com/tx/0xaeeef02630c43b6d485d699cdaf901f9aa522355fb90488b1837e8e58d2c285f) |
+| AAPLB | 29861794 | $336.22 | $333.72 – $338.33 | 2026-10-11T08:34:25Z | [tx](https://bscscan.com/tx/0xfc67f54e749f7aec85aa361f03220bb9b78e47dd7e592a0dcca69531bacd06b3) |
+| COINB | 29861794 | $180.50 | $172.07 – $187.89 | 2026-10-11T08:34:25Z | [tx](https://bscscan.com/tx/0xfc67f54e749f7aec85aa361f03220bb9b78e47dd7e592a0dcca69531bacd06b3) |
+| CYPHB | 29861794 | $2.96 | $2.76 – $3.13 | 2026-10-11T08:34:25Z | [tx](https://bscscan.com/tx/0xfc67f54e749f7aec85aa361f03220bb9b78e47dd7e592a0dcca69531bacd06b3) |
+| NVDAB | 29861794 | $230.01 | $225.20 – $234.13 | 2026-10-11T08:34:25Z | [tx](https://bscscan.com/tx/0xfc67f54e749f7aec85aa361f03220bb9b78e47dd7e592a0dcca69531bacd06b3) |
+| QQQB | 29861794 | $751.05 | $741.82 – $758.88 | 2026-10-11T08:34:25Z | [tx](https://bscscan.com/tx/0xfc67f54e749f7aec85aa361f03220bb9b78e47dd7e592a0dcca69531bacd06b3) |
+| SPYB | 29861794 | $778.87 | $773.65 – $783.28 | 2026-10-11T08:34:25Z | [tx](https://bscscan.com/tx/0xfc67f54e749f7aec85aa361f03220bb9b78e47dd7e592a0dcca69531bacd06b3) |
+| TSLAB | 29861794 | $382.73 | $376.17 – $388.32 | 2026-10-11T08:34:25Z | [tx](https://bscscan.com/tx/0xfc67f54e749f7aec85aa361f03220bb9b78e47dd7e592a0dcca69531bacd06b3) |
+| HIMSB | 29861733 | $30.90 | $29.91 – $31.75 | 2026-10-11T07:33:31Z | [tx](https://bscscan.com/tx/0x6aa2cab03ca3698f851084a3afad11110c0e330d37ffb96fe37c557e71e8629a) |
+| AAOIB | 29861700 | $110.79 | $103.90 – $116.92 | 2026-10-11T07:00:27Z | [tx](https://bscscan.com/tx/0x22c01194f4be807708cc9539efbe4c9c84d70e02aadb4fc905d941e1b6aee302) |
+| ADBEB | 29861700 | $241.01 | $234.45 – $246.65 | 2026-10-11T07:00:27Z | [tx](https://bscscan.com/tx/0x22c01194f4be807708cc9539efbe4c9c84d70e02aadb4fc905d941e1b6aee302) |
+| AGPUB | 29861700 | $11.96 | $11.69 – $12.18 | 2026-10-11T07:00:27Z | [tx](https://bscscan.com/tx/0x0fb103244b89bf3ecaabef9fb1d5cf946b69aa9aa93636a4823be1d21d549278) |
+| AMATB | 29861700 | $507.33 | $485.75 – $526.17 | 2026-10-11T07:00:27Z | [tx](https://bscscan.com/tx/0x0fb103244b89bf3ecaabef9fb1d5cf946b69aa9aa93636a4823be1d21d549278) |
 
 ## The weekend loan (NightshiftCredit)
 
