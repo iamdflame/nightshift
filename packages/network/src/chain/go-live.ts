@@ -104,8 +104,11 @@ if (!deployed) {
   const r = spawnSync("bash", ["deploy/deploy-contracts.sh", "--broadcast"], { stdio: "inherit" });
   if (r.status !== 0) throw new Error("contract deployment failed");
 }
-console.log("\n→ ERC-8004 registrations …");
-await registerAll(false);
+// Agent cards must name a reachable MCP/A2A endpoint, so identities wait for the public URL.
+if (process.env.NIGHTSHIFT_PUBLIC_URL) {
+  console.log("\n→ ERC-8004 registrations …");
+  await registerAll(false);
+} else console.log("\n· ERC-8004 registrations wait for NIGHTSHIFT_PUBLIC_URL (the agents' public MCP/A2A endpoint)");
 
 if (tU < U_TARGET) {
   if (!apiKey) console.log("! skip USDT→U: needs the Binance Web3 API key");

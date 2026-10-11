@@ -13,7 +13,8 @@ import { loadEnv } from "../env.ts";
 import { ROLES, type Role, walletFor } from "./wallets.ts";
 
 loadEnv();
-const PUBLIC_URL = process.env.NIGHTSHIFT_PUBLIC_URL ?? "https://github.com/nightshift-oracle";
+/** Where the agents are reachable (MCP + A2A). Unset → cards carry no endpoints until one exists. */
+const PUBLIC_URL = process.env.NIGHTSHIFT_PUBLIC_URL?.replace(/\/+$/, "") || null;
 const REGISTRY_FILE = "deployments/agents.json";
 
 export const AGENT_CARDS: Record<Role, { name: string; description: string; capabilities: string[] }> = {
@@ -55,22 +56,30 @@ export async function registerAll(dryRun = false): Promise<Registry> {
   for (const role of ROLES) {
     const wallet = walletFor(role);
     const card = AGENT_CARDS[role];
-    const endpoints = [
-      AgentEndpoint.mcp(`${PUBLIC_URL}/mcp`, { capabilities: card.capabilities } as never),
-      AgentEndpoint.a2a(PUBLIC_URL),
-    ];
+    const endpoints = PUBLIC_URL
+      ? [AgentEndpoint.mcp(`${PUBLIC_URL}/mcp`, { capabilities: card.capabilities } as never), AgentEndpoint.a2a(PUBLIC_URL)]
+      : [];
     const agent = await ERC8004Agent.create({ walletProvider: wallet, network: "bsc-mainnet" });
     const uri = agent.generateAgentUri({ name: card.name, description: card.description, endpoints, supportedTrust: ["reputation"] });
     if (dryRun) {
       console.log(`${role.padEnd(9)} ${wallet.address}  ${card.name}  (uri ${uri.length} bytes)`);
       continue;
     }
-    if (reg[role]?.agentId != null) {
-      console.log(`${role.padEnd(9)} already registered: agentId ${reg[role]!.agentId}`);
+    const known = reg[role];
+    if (known?.agentId != null) {
+      if (known.agentURI === uri) {
+        console.log(`${role.padEnd(9)} already registered: agentId ${known.agentId}`);
+        continue;
+      }
+      // Card or endpoints changed (e.g. the public URL now exists): update the URI in place.
+      const u = await agent.setAgentUri(known.agentId, uri);
+      reg[role] = { ...known, agentURI: uri, tx: (u as { transactionHash?: string }).transactionHash ?? known.tx, registeredAt: known.registeredAt };
+      writeFileSync(REGISTRY_FILE, JSON.stringify(reg, null, 2));
+      console.log(`${role.padEnd(9)} updated agentId ${known.agentId} card → ${(u as { transactionHash?: string }).transactionHash}`);
       continue;
     }
     const r = await agent.registerAgent(uri);
-    reg[role] = { agentId: r.agentId, address: wallet.address, tx: r.transactionHash, agentURI: r.agentURI, registeredAt: new Date().toISOString() };
+    reg[role] = { agentId: r.agentId, address: wallet.address, tx: r.transactionHash, agentURI: uri, registeredAt: new Date().toISOString() };
     writeFileSync(REGISTRY_FILE, JSON.stringify(reg, null, 2));
     console.log(`${role.padEnd(9)} registered agentId ${r.agentId} tx ${r.transactionHash}`);
   }

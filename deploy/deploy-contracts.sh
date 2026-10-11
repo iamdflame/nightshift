@@ -24,7 +24,11 @@ export NIGHTSHIFT_TOKENS="0x02fca66c1d1afb4e2a7884261eb00f63598a7436,0x5b1910eaa
 cd contracts
 if [ "${1:-}" = "--broadcast" ]; then
   echo "Deploying to BSC mainnet from treasury $TREASURY ..."
-  forge script script/Deploy.s.sol --rpc-url "$RPC" --keystore "../$KEYSTORE" --password "$NIGHTSHIFT_KEY_PASSWORD" --broadcast --slow
+  # Password via a private temp file: a value starting with "-" is parsed as a flag by forge, and a
+  # file keeps it out of the process list. Legacy txs at 0.1 gwei: BSC's floor is 0.05 gwei.
+  PWFILE=$(mktemp); chmod 600 "$PWFILE"; trap 'rm -f "$PWFILE"' EXIT
+  printf '%s' "$NIGHTSHIFT_KEY_PASSWORD" > "$PWFILE"
+  forge script script/Deploy.s.sol --rpc-url "$RPC" --keystore "../$KEYSTORE" --password-file "$PWFILE" --broadcast --slow --legacy --with-gas-price 100000000
   mkdir -p ../deployments && cp deployments/56.json ../deployments/56.json && echo "addresses → deployments/56.json (read by the Night Shift publisher)"
 else
   echo "Dry run (fork) from treasury $TREASURY — add --broadcast to deploy for real"
