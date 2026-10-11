@@ -1,0 +1,279 @@
+{
+  "takenAt": "2026-10-11T06:03:20.327Z",
+  "site": "https://nightshift-oracle.vercel.app",
+  "repo": "https://github.com/iamdflame/nightshift",
+  "venus": {
+    "price": 230.31878682444523,
+    "collateralNvdab": 1490,
+    "cap": 1500,
+    "collateralFactor": 0.6
+  },
+  "nightshift": {
+    "adapterPrice": 229.91861862000002,
+    "fairValue": 229.9186,
+    "lower": 225.1094,
+    "upper": 234.0318,
+    "anchorTime": "2026-10-12T13:30:00.000Z",
+    "weights": {
+      "anchor": 0.09863825429686507,
+      "echo": 0.21952347205272163,
+      "nfv": 0.6818382736504134
+    },
+    "forecasters": [
+      {
+        "f": "anchor",
+        "fairValue": 229.42396445577094
+      },
+      {
+        "f": "echo",
+        "fairValue": 230.485
+      },
+      {
+        "f": "nfv",
+        "fairValue": 229.80815454706078
+      }
+    ]
+  },
+  "chain": {
+    "seals": 210,
+    "oracleReports": 197,
+    "agents": [
+      {
+        "name": "Nightshift Scorer",
+        "agentId": 370890,
+        "address": "0x6890d02b614aeD8466d30F3642afd193e952f19e"
+      },
+      {
+        "name": "Forecaster: Anchor",
+        "agentId": 370891,
+        "address": "0x4feD3C73DE4392299747bf976749586b96D2C9e8"
+      },
+      {
+        "name": "Forecaster: Echo",
+        "agentId": 370892,
+        "address": "0x11Cff8165119475Bc7f76ef755f4c0b7e33C0183"
+      },
+      {
+        "name": "Forecaster: NFV",
+        "agentId": 370893,
+        "address": "0xed958842c7477E76d926E4B08130a0b5C2DCbd99"
+      },
+      {
+        "name": "Nightshift Trade",
+        "agentId": 370894,
+        "address": "0xd8aCAE17c151Fe640EB83593F69ff44678427Ee7"
+      }
+    ],
+    "contracts": [
+      {
+        "name": "ForecastBook",
+        "address": "0xa04fE9e7F0289c9fC5b00e0eE972Cbd00a203212",
+        "role": "Forecasters commit a Merkle root of every forecast before the open"
+      },
+      {
+        "name": "NightshiftOracle",
+        "address": "0x0cEe7C0F2B62421E54c5F2E618dC53CC7eD4c63d",
+        "role": "Consensus fair value + 90% next-open band per token"
+      },
+      {
+        "name": "NightshiftCredit",
+        "address": "0x49c79D9D4c68a6fB8e9A34b828d36B7A38E2762e",
+        "role": "Borrow USDT against bStocks 24/7, valued at the band's lower edge"
+      },
+      {
+        "name": "NightshiftVenusOracle",
+        "address": "0x1a92c4Dc8264ebC2E6F3984a963AF5a4054FaC23",
+        "role": "Venus OracleInterface adapter over the same reports"
+      }
+    ],
+    "feeds": 6,
+    "jobs": 0,
+    "latestSeal": {
+      "round": 29861640,
+      "t": 1791698425088,
+      "forecaster": "anchor",
+      "tx": "0x7509c50ed090b57b8eeddcef84faa547840e0a271628ef6b9f2346fba6ea1444",
+      "anchorTime": 1791811800000
+    },
+    "loan": {
+      "steps": {
+        "buy": {
+          "tx": "0xdcdbfbf38d670a309470f425a5577007fe2d394cadfd928e6cd1870567ff7899",
+          "mode": "SWAP",
+          "vendor": "LiquidMesh",
+          "verdict": "bought 30.6 bps above fair value (inside the 90% band)",
+          "receiptHash": "0x15daf6acf457c77a8d9534576989e464878fdaa68a50505df85ac9f266b933c1",
+          "at": "2026-10-11T01:59:52.958Z"
+        },
+        "lend": {
+          "tx": "0x9cbd79dc356c6fd1d69a0207e25f8ce1270fbf566faeb34380b4ad55d811b552",
+          "usdt": "1.5",
+          "at": "2026-10-11T01:59:56.945Z"
+        },
+        "collateral": {
+          "tx": "0x598810e2d6a615097156dad39cdaedba79f9bbfaf6dc86991ee2c56f77186c8f",
+          "nvdab": "0.021688495019914266",
+          "at": "2026-10-11T02:00:00.498Z"
+        },
+        "borrow": {
+          "tx": "0xffabd4d1f2f6768850c175c19b3aa7a89b7c16efb3c71bc21f38521194f91982",
+          "usdt": "0.976123655474072564",
+          "borrowPower": "2.44030913868518141",
+          "at": "2026-10-11T02:00:02.782Z"
+        }
+      },
+      "summary": {
+        "borrower": "0xd8aCAE17c151Fe640EB83593F69ff44678427Ee7",
+        "credit": "0x49c79D9D4c68a6fB8e9A34b828d36B7A38E2762e",
+        "oracleRound": 29861375,
+        "fairValue": "229.84012416",
+        "valuedAt": "225.03259322",
+        "debtUsdt": "0.976123655474072565",
+        "borrowPowerUsdt": "2.44030913868518141",
+        "healthFactor": "3.249999999999999996",
+        "checkedAt": "2026-10-11T02:00:03.088Z"
+      }
+    },
+    "trade": {
+      "tx": "0xbd77806a9c274aa9d3609df15c856f37ef61ff85f843511371140897a02af92a",
+      "receipt": {
+        "version": "nightshift.receipt.v1",
+        "chainId": 56,
+        "txHash": "0xbd77806a9c274aa9d3609df15c856f37ef61ff85f843511371140897a02af92a",
+        "block": 126932688,
+        "timestamp": "2026-10-11T01:35:29.000Z",
+        "trader": "0x43cf3295a41fc70b215763a47ec36874604ebad1",
+        "side": "buy",
+        "token": {
+          "address": "0x02fca66c1d1afb4e2a7884261eb00f63598a7436",
+          "symbol": "NVDAB",
+          "ticker": "NVDA",
+          "sharesPerToken": 1.0007782237528078
+        },
+        "payToken": {
+          "address": "0x55d398326f99059ff775485246999027b3197955",
+          "symbol": "USDT"
+        },
+        "amountToken": 0.021678919271532884,
+        "amountUsd": 5,
+        "pricePerToken": 230.6388034096156,
+        "pricePerShare": 230.4594543881516,
+        "session": "closed",
+        "reference": {
+          "round": 29861375,
+          "fairValue": 229.84012415913648,
+          "lower": 225.03259321834236,
+          "upper": 233.95186699500846,
+          "anchorTime": "2026-10-12T13:30:00.000Z"
+        },
+        "tca": {
+          "vsFairValueBps": 34.75,
+          "insideBand": true,
+          "verdict": "bought 34.7 bps above fair value (inside the 90% band)"
+        },
+        "receiptHash": "0xbbf5d76b676923f986b5c7f996cf33796deef24fb7c4ef3d6a0af6537ca4dad3"
+      }
+    }
+  },
+  "bell": {
+    "anchorTime": 1791552600000,
+    "realized": 234.015,
+    "lastCommits": [
+      {
+        "f": "anchor",
+        "fairValue": 230.6179,
+        "lower": 226.5099,
+        "upper": 234.8004,
+        "errBps": -146.2,
+        "covered": true
+      },
+      {
+        "f": "echo",
+        "fairValue": 234.115,
+        "lower": 231.2935,
+        "upper": 236.9709,
+        "errBps": 4.3,
+        "covered": true
+      },
+      {
+        "f": "nfv",
+        "fairValue": 234.1592,
+        "lower": 230.6787,
+        "upper": 237.7354,
+        "errBps": 6.2,
+        "covered": true
+      }
+    ]
+  },
+  "opens": {
+    "total": 174,
+    "inside": 165,
+    "below": 6
+  },
+  "stack": {
+    "calls24h": 11085,
+    "totalCalls": 11085,
+    "modules": [
+      {
+        "module": "rwa",
+        "calls24h": 5417
+      },
+      {
+        "module": "trading",
+        "calls24h": 5623
+      },
+      {
+        "module": "transaction",
+        "calls24h": 4
+      },
+      {
+        "module": "b402",
+        "calls24h": 41
+      }
+    ],
+    "codes": [
+      {
+        "code": "0",
+        "count": 5292
+      },
+      {
+        "code": "40304",
+        "count": 3701
+      },
+      {
+        "code": "40001",
+        "count": 1260
+      },
+      {
+        "code": "HTTP 414",
+        "count": 691
+      },
+      {
+        "code": "circuit_open",
+        "count": 152
+      },
+      {
+        "code": "40374",
+        "count": 96
+      }
+    ]
+  },
+  "backtest": {
+    "weekendDark": {
+      "stale": 169.1,
+      "echo": 166.7,
+      "nfv": 163.3,
+      "cov": 0.866
+    },
+    "all": {
+      "stale": 165.2,
+      "echo": 129.9,
+      "nfv": 128.6,
+      "cov": 0.8875
+    }
+  },
+  "status": {
+    "session": "closed",
+    "nextOpen": "2026-10-12T13:30:00.000Z"
+  }
+}

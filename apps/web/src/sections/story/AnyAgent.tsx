@@ -25,7 +25,8 @@ function Receipt() {
     ["Per real share", usd(r.pricePerShare)],
     ["Fair value per token then", r.reference ? usd(r.reference.fairValue) : "–"],
     ["90% band", r.reference ? `${usd(r.reference.lower)} – ${usd(r.reference.upper)}` : "–"],
-    ["Price vs fair value", r.tca.vsFairValueBps == null ? "–" : `${r.tca.vsFairValueBps >= 0 ? "+" : "−"}${Math.abs(r.tca.vsFairValueBps).toFixed(1)} bps`],
+    // The verdict's own figure, so the row and the verdict never round differently (34.75 → "34.7" there, "34.8" by toFixed).
+    ["Price vs fair value", r.tca.vsFairValueBps == null ? "–" : `${r.tca.vsFairValueBps >= 0 ? "+" : "−"}${r.tca.verdict.match(/([\d.]+) bps/)?.[1] ?? Math.abs(r.tca.vsFairValueBps).toFixed(1)} bps`],
   ];
   return (
     <div ref={ref} className="relative mx-auto w-full max-w-[380px]">
