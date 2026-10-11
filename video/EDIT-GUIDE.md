@@ -6,12 +6,13 @@ Everything here is ready except your voice. The picture is cut, captioned, score
 
 | File | What it is |
 |---|---|
-| `nightshift-demo-draft.mp4` | Full cut, 3:19, 1080p30, music + burned-in captions, timed to estimated voice lengths |
-| `nightshift-demo-draft-nomusic.mp4` | Same cut, no music, for your own mix |
-| `captions.srt` | The captions as a separate track (YouTube → Subtitles → upload file) |
-| `nightshift-demo.mp4` | **The final**, created by step 2 below once your voice files exist |
+| **`nightshift-demo-final.mp4`** | **Upload this one.** Your ElevenLabs voice, synced: 3:16, 1080p30, H.264 + AAC 320k, mastered to -14.4 LUFS / -1.5 dBTP (YouTube's level), music ducked under speech, burned-in captions on the measured timings. |
+| `nightshift-demo.mp4` | The same render before the final +2 dB loudness pass |
+| `captions.srt` | The same captions as a separate track (YouTube → Subtitles → upload file) |
+| `thumbnail.png` | 1280×720 YouTube thumbnail |
+| `nightshift-demo-draft*.mp4` | Earlier drafts at estimated timings (no voice); keep or delete |
 
-Source: `video/src` (Remotion, React). Footage: `video/public/capture` (the live site, recorded at 1080p), `video/public/broll` (NASA + Mixkit, licences in `CREDITS.md`), music in `video/public/music`.
+How the sync works: `scripts/align.mjs` finds the pauses in each voice file, snaps every sentence of the script to them, and writes `src/align.json`. The scenes cue their beats to those spoken phrases: each owl walks on as it's named, the envelopes fly on "every thirty minutes", and the scores land on their sentences. It also normalises the voice loudness and builds the music ducking map. If you replace a voice file, run `node --import tsx scripts/align.mjs` before rendering.
 
 ## Step 1 · Generate the voice (ElevenLabs, ~15 min)
 
@@ -28,8 +29,10 @@ Listen to each. If a take rushes or a tag is read aloud, regenerate that scene o
 From the repo root in Git Bash:
 
 ```
-cd video && pnpm exec remotion render Main out/nightshift-demo.mp4 --concurrency=6 --gl=angle && node --import tsx scripts/srt.mjs
+cd video && node --import tsx scripts/align.mjs && pnpm exec remotion render Main out/nightshift-demo.mp4 --concurrency=3 --gl=angle --offthreadvideo-cache-size-in-bytes=700000000 && node --import tsx scripts/srt.mjs
 ```
+
+(Concurrency 3 and the 700 MB frame cache keep the render inside this PC's free memory; higher settings ran out of memory and failed with "No frame found at position".)
 
 - Every scene stretches or shrinks to its voice file, plus 0.3 s before and 0.7 s after.
 - The music drops under the voice automatically.
@@ -68,7 +71,10 @@ All figures in the video are live from BNB Chain mainnet and the Nightshift API 
 Footage: "Lights of Human Activity Shine in NASA's Image of Earth at Night" (NASA Goddard, public domain); Mixkit (Mixkit Stock Video Free License): full moon, city aerials, Milky Way, stars, clock.
 Music: "Moon Walk" by Eugenio Mininni (Mixkit Stock Music Free License).
 Characters and graphics: original.
+Voice: ElevenLabs.
 ```
+
+(If your ElevenLabs plan is the free tier, keep the "Voice: ElevenLabs" credit: the free tier requires attribution.)
 
 Then paste the link into the submission form and into `docs/SUBMISSION.md` (the "Demo video" line).
 
