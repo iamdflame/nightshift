@@ -270,6 +270,21 @@ export default function Stack() {
               />
             </div>
             <LiveFeed />
+            <dl className="mt-4 grid gap-2 text-[13px]">
+              {[
+                ["answer", "Fair value for the next open, USD, 8 decimals. updatedAt is when the report was posted."],
+                ["band()", "lower and upper (5th and 95th percentile at the open), anchorTime, session, and flags: corporate action, reference stale, thin liquidity, degraded."],
+                ["Updates", "Tokens a contract reads post every 30 minutes; the rest on a 25 bps move, a 20% band change or a 6-hour heartbeat."],
+                ["Staleness", "The feed returns the last report and never reverts on age, so check updatedAt. The Venus adapter reverts past 1 hour or on a corporate-action flag, so Venus falls back to its pivot. Our credit vault refuses stale, flagged or wider-than-15% reports for new borrows."],
+                ["Who signs", "One allowlisted reporter, the Scorer's key (0x6890…f19e), which is also the owner. The consensus is computed off-chain from the sealed forecasts; anyone can check a forecast against its root, not yet the consensus itself."],
+                ["Suggested use", "A weekend haircut, pivot or bound next to a lender's main feed, not the only source."],
+              ].map(([k, v]) => (
+                <div key={k} className="grid gap-x-3 sm:grid-cols-[7.5rem_1fr]">
+                  <dt className="num text-moon-1">{k}</dt>
+                  <dd className="text-moon-2">{v}</dd>
+                </div>
+              ))}
+            </dl>
           </div>
           <div>
             <h3 className="font-sans text-[16px] font-medium tracking-normal text-moon-0">Over HTTP, no key</h3>
