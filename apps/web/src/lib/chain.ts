@@ -1,7 +1,7 @@
 /** Read-only BNB Chain access straight from the browser: no wallet, no server in between. */
 import { createPublicClient, fallback, http, parseAbi } from "viem";
 import { bsc } from "viem/chains";
-export { ADDR, FORECASTERS, bscscan, type Forecaster } from "./links";
+export { ADDR, FORECASTERS, VENUS, bscscan, type Forecaster } from "./links";
 
 export const client = createPublicClient({
   chain: bsc,
@@ -39,3 +39,14 @@ export const feedAbi = parseAbi([
   "function description() view returns (string)",
 ]);
 
+/** Venus: ResilientOracle and its source oracles, the vToken and the Comptroller (all read-only). */
+export const venusAbi = parseAbi([
+  "struct TokenConfig { address asset; address[3] oracles; bool[3] enableFlagsForOracles; bool cachingEnabled; }",
+  "function getPrice(address asset) view returns (uint256)",
+  "function getTokenConfig(address asset) view returns (TokenConfig)",
+  "function tokenConfigs(address asset) view returns (address asset, address feed, uint256 maxStalePeriod)",
+  "function totalSupply() view returns (uint256)",
+  "function exchangeRateStored() view returns (uint256)",
+  "function supplyCaps(address vToken) view returns (uint256)",
+  "function markets(address vToken) view returns (bool isListed, uint256 collateralFactorMantissa, bool isVenus, uint256 liquidationThresholdMantissa)",
+]);

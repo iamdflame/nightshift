@@ -9,8 +9,15 @@ export const ADDR = {
   USDT: "0x55d398326f99059fF775485246999027B3197955",
 } as const;
 
+/** Venus Core Pool, which lists NVDAB as collateral: read only, to show what a lender reads for the same token. */
+export const VENUS = {
+  Comptroller: "0xfD36E2c2a6789Db23113685031d7F16329158384",
+  ResilientOracle: "0x6592b5DE802159F3E74B2486b091D11a8256ab8A",
+  vNVDAB: "0xEb8Ca841cBe1BC4832A10b15c7dAB1081eDaD371",
+} as const;
+
 export const FORECASTERS = {
-  anchor: { address: "0x4feD3C73DE4392299747bf976749586b96D2C9e8", agentId: 370891, name: "Anchor", blurb: "Today's oracle: the last official close." },
+  anchor: { address: "0x4feD3C73DE4392299747bf976749586b96D2C9e8", agentId: 370891, name: "Anchor", blurb: "The last official close, held until the next open: the no-skill baseline." },
   echo: { address: "0x11Cff8165119475Bc7f76ef755f4c0b7e33C0183", agentId: 370892, name: "Echo", blurb: "The live 24/7 on-chain price, echoed." },
   nfv: { address: "0xed958842c7477E76d926E4B08130a0b5C2DCbd99", agentId: 370893, name: "NFV", blurb: "Nightshift Fair Value: information provenance + conformal bands." },
 } as const;

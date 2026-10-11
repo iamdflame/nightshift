@@ -6,6 +6,7 @@ import { ADDR } from "@/lib/links";
 import { num, usd } from "@/lib/format";
 import { useOnchain } from "@/lib/queries";
 import { Heading } from "./Heading";
+import { VenusContrast } from "./VenusContrast";
 
 const BORROWER = "0xd8aCAE17c151Fe640EB83593F69ff44678427Ee7";
 
@@ -85,11 +86,11 @@ export default function SundayLoan() {
         <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-night-0 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-night-0 to-transparent" />
       </div>
-      <div className="mx-auto grid max-w-[1320px] gap-14 px-4 sm:px-6 lg:grid-cols-[1fr_1fr] lg:items-center">
+      <div className="mx-auto grid max-w-[1320px] grid-cols-[minmax(0,1fr)] gap-14 px-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-center">
         <div>
-          <Heading id="loan-title" kicker="The first thing it unlocks" title={`Borrow against NVIDIA ${clock}on a ${weekday}.`}>
-            Venus lists NVDAB as collateral with borrowing switched off. Nothing prices a stock while the market sleeps, so nothing can be lent against it. Our credit vault values collateral at the
-            lower edge of Nightshift's band for the next open, so a weekend loan is sized for Monday's gap, not Friday's close.
+          <Heading id="loan-title" kicker="What a lender reads" title={`Borrow against NVIDIA ${clock}on a ${weekday}.`}>
+            Lenders already price NVDAB through the weekend, from the token's own trading: one number, with no view of where the stock will open. Our credit vault reads Nightshift instead and
+            values collateral at the lower edge of the band for the next open, so a weekend loan is sized for the gap at the bell. This loan is real, on BNB Chain mainnet.
           </Heading>
           <ol className="mt-10 grid gap-3">
             {labels.map(([k, l]) => (
@@ -135,6 +136,7 @@ export default function SundayLoan() {
             </p>
           )}
         </div>
+        <VenusContrast className="lg:col-span-2" />
       </div>
     </section>
   );
