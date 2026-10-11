@@ -1,6 +1,6 @@
 # Submission draft: BNB Hack, Tokenized Stocks Edition
 
-> Copy into the submission form. The only `TODO` left is the demo video link. The **Developer Experience Report is a separate, human-written document** (evidence in `docs/der/EVIDENCE.md`).
+> Copy into the submission form. The **Developer Experience Report is a separate, human-written document** (evidence in `docs/der/EVIDENCE.md`).
 
 **Project:** Nightshift
 
@@ -32,7 +32,7 @@ Nightshift publishes what a lender needs instead: a fair value and a calibrated 
   - Binance Web3 API telemetry (every call and outcome code): https://nightshift-oracle.vercel.app/stack
 - Repo: https://github.com/iamdflame/nightshift
 - Live API: https://nightshift-oracle.vercel.app/v1 (`/v1/radar`, `/v1/which/NVDA`, `/v1/scoreboard`, `/v1/onchain`, `/openapi.json`, `/mcp`, `/.well-known/agent-card.json`)
-- Demo video: TODO
+- Demo video: https://youtu.be/7ee6TOFZqi4
 - Contracts on BSC mainnet (deployed at block 126,929,397):
   - ForecastBook: https://bscscan.com/address/0xa04fE9e7F0289c9fC5b00e0eE972Cbd00a203212
   - NightshiftOracle: https://bscscan.com/address/0x0cEe7C0F2B62421E54c5F2E618dC53CC7eD4c63d
