@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+keys/
+**/keys/
+**/.studio/
+**/.env.local
+data/
+.apex/
+.git/
+**/node_modules/
+contracts/out/
+contracts/cache/
+contracts-hooks/out/
+contracts-hooks/cache/
+deploy/railway/railway.env
