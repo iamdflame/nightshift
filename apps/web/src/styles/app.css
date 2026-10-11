@@ -184,3 +184,8 @@ p { text-wrap: pretty; }
 .ns-beam-pulse { animation: ns-beam-flow 3.2s var(--ease-travel) infinite; }
 @keyframes ns-beam-flow { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
 @media (prefers-reduced-motion: reduce) { .ns-beam-pulse { animation: none; } }
+
+/* Tables become labelled cards on phones. */
+@media (max-width: 639px) {
+  td[data-label]::before { content: attr(data-label); display: block; margin-bottom: 2px; font-family: var(--font-sans); font-size: 12px; letter-spacing: 0; color: var(--color-moon-3); }
+}
