@@ -109,6 +109,14 @@ export class Queries {
     return this.db.prepare(`SELECT * FROM consensus WHERE round = ? ORDER BY symbol`).all(r.round) as unknown as ConsensusRow[];
   }
 
+  /** One round's consensus for one token, with the weights it was computed with (to recompute it from the sealed forecasts). */
+  consensusAt(round: number, key: string) {
+    const c = this.db
+      .prepare(`SELECT * FROM consensus WHERE round = ? AND (lower(symbol) = lower(?2) OR token = lower(?2))`)
+      .get(round, key) as unknown as ConsensusRow | undefined;
+    return c ? this.formatConsensus(c) : null;
+  }
+
   /** Fair value for one token (symbol like NVDAB or a BSC address), with every forecaster's view. */
   fairValue(key: string) {
     const r = this.latestRound();

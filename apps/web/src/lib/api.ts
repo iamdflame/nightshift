@@ -283,6 +283,7 @@ export const api = {
   which: (ticker: string) => get<Which>(`/v1/which/${encodeURIComponent(ticker)}`),
   rounds: (limit = 50) => get<RoundRow[]>(`/v1/rounds?limit=${limit}`),
   proof: (round: number, forecaster: string, token: string) => get<Proof>(`/v1/rounds/${round}/proof/${forecaster}/${encodeURIComponent(token)}`),
+  consensusAt: (round: number, token: string) => get<Consensus>(`/v1/rounds/${round}/consensus/${encodeURIComponent(token)}`),
   scoreboard: () => get<{ scoreboard: ScoreRow[] }>("/v1/scoreboard"),
   results: () => get<{ results: ResultRow[] }>("/v1/results"),
   history: (key: string, hours = 72, anchor?: number) => get<History>(`/v1/history/${encodeURIComponent(key)}?hours=${hours}${anchor ? `&anchor=${anchor}` : ""}`),

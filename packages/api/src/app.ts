@@ -108,6 +108,10 @@ export async function buildApp(q: Queries, opts: AppOptions = {}): Promise<Fasti
     const r = q.proof(Number(req.params.round), req.params.forecaster, req.params.token);
     return r ?? reply.code(404).send({ error: "forecast not found in that round" });
   });
+  app.get<{ Params: { round: string; token: string } }>("/v1/rounds/:round/consensus/:token", async (req, reply) => {
+    const r = q.consensusAt(Number(req.params.round), req.params.token);
+    return r ?? reply.code(404).send({ error: "no consensus for that token in that round" });
+  });
   app.get("/v1/scoreboard", async () => ({ scoreboard: q.scoreboard() }));
   // Receipt v1: what any BSC tokenized-stock trade cost per real share vs the fair value at that moment.
   app.get<{ Params: { tx: string }; Querystring: { trader?: string } }>("/v1/receipts/:tx", { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } }, async (req, reply) => {

@@ -360,9 +360,92 @@ export default function Verify() {
               </motion.div>
             )}
           </AnimatePresence>
+          <ConsensusCheck />
           <ReceiptCheck />
         </section>
       </div>
+    </div>
+  );
+}
+
+const ALL: Forecaster[] = ["anchor", "echo", "nfv"];
+
+/**
+ * The oracle's price, recomputed in the browser: read NVDAB's report from NightshiftOracle, check the three
+ * forecasts of that round against their on-chain roots, and take their weighted geometric mean (the aggregator's
+ * rule: weighted quantile averaging in log space) with the weights published for that round.
+ */
+function ConsensusCheck() {
+  type Row = { f: Forecaster; median: number; lower: number; upper: number; sealed: boolean; w: number };
+  type Out = { round: number; rows: Row[]; onchain: { fv: number; lo: number; hi: number; updatedAt: number }; mine: { fv: number; lo: number; hi: number } };
+  const [out, setOut] = useState<Out | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const run = async () => {
+    setBusy(true);
+    setErr(null);
+    setOut(null);
+    try {
+      const { client, forecastBookAbi, oracleAbi } = await import("@/lib/chain");
+      const rep = await client.readContract({ address: ADDR.NightshiftOracle, abi: oracleAbi, functionName: "getReport", args: [ADDR.NVDAB] });
+      const round = Number(rep.round);
+      const [c, ...proofs] = await Promise.all([api.consensusAt(round, "NVDAB"), ...ALL.map((f) => api.proof(round, f, "NVDAB"))]);
+      const sealed = await Promise.all(
+        proofs.map((p, i) => {
+          const leaf: ForecastLeaf = { round: BigInt(p.leaf.round), token: p.leaf.token as `0x${string}`, medianE8: BigInt(p.leaf.medianE8), lowerE8: BigInt(p.leaf.lowerE8), upperE8: BigInt(p.leaf.upperE8), anchorTime: BigInt(p.leaf.anchorTime) };
+          return client.readContract({ address: ADDR.ForecastBook, abi: forecastBookAbi, functionName: "verifyForecast", args: [FORECASTERS[ALL[i]!].address as `0x${string}`, BigInt(round), leaf, p.proof as Hex[]] }) as Promise<boolean>;
+        }),
+      );
+      const rows = ALL.map((f, i) => ({ f, median: Number(proofs[i]!.leaf.medianE8) / 1e8, lower: Number(proofs[i]!.leaf.lowerE8) / 1e8, upper: Number(proofs[i]!.leaf.upperE8) / 1e8, sealed: sealed[i]!, w: c.weights[f] }));
+      const mean = (k: "median" | "lower" | "upper") => Math.exp(rows.reduce((a, r) => a + r.w * Math.log(r[k]), 0));
+      setOut({ round, rows, onchain: { fv: Number(rep.fairValue) / 1e8, lo: Number(rep.lower) / 1e8, hi: Number(rep.upper) / 1e8, updatedAt: Number(rep.updatedAt) * 1000 }, mine: { fv: mean("median"), lo: mean("lower"), hi: mean("upper") } });
+    } catch (e) {
+      setErr((e as Error).message.split("\n")[0] ?? "The check failed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+  // Leaves and reports are both 8-decimal: the recomputation lands within a few units of the last place.
+  const close = (a: number, b: number) => Math.abs(a - b) < 1e-5 * b;
+  const match = out ? out.rows.every((r) => r.sealed) && close(out.mine.fv, out.onchain.fv) && close(out.mine.lo, out.onchain.lo) && close(out.mine.hi, out.onchain.hi) : false;
+  return (
+    <div className="card mt-10 p-5 sm:p-6">
+      <h2 className="font-sans text-[18px] font-medium tracking-normal">Check the oracle's price</h2>
+      <p className="mt-1 text-[14px] text-moon-2">
+        Reads NVDAB's report from NightshiftOracle, checks the three forecasts of that round against their roots on BNB Chain, and recomputes the price from them: a weighted geometric mean, with the
+        weights published for that round.
+      </p>
+      <button type="button" onClick={run} disabled={busy} className="pressable mt-4 rounded-md px-4 py-2.5 text-[14px] text-moon-0 hairline hover:bg-night-3 disabled:opacity-40">
+        {busy ? "Checking on BNB Chain…" : "Recompute NVDAB's oracle price"}
+      </button>
+      {err && (
+        <p role="alert" className="mt-3 text-[14px] text-down">
+          {err}
+        </p>
+      )}
+      {out && (
+        <div className="mt-4 grid gap-0.5" aria-live="polite">
+          {out.rows.map((r) => (
+            <Kv
+              key={r.f}
+              k={`${FORECASTERS[r.f].name} (weight ${r.w.toFixed(3)})`}
+              v={
+                <>
+                  {usd(r.median)} ({usd(r.lower)} – {usd(r.upper)}) <span className={r.sealed ? "text-sodium" : "text-down"}>{r.sealed ? "sealed ✓" : "not sealed ✗"}</span>
+                </>
+              }
+            />
+          ))}
+          <Kv k="Recomputed in your browser" v={`${usd(out.mine.fv, 4)} (${usd(out.mine.lo, 4)} – ${usd(out.mine.hi, 4)})`} />
+          <Kv k={`On-chain, round ${out.round}`} v={`${usd(out.onchain.fv, 4)} (${usd(out.onchain.lo, 4)} – ${usd(out.onchain.hi, 4)})`} />
+          <p className={`mt-2 text-[15px] ${match ? "text-moon-0" : "text-down"}`} role="status">
+            {match
+              ? "Match: the posted price is exactly what the three sealed forecasts and the published weights give."
+              : "Mismatch: the posted price is not what the sealed forecasts and the published weights give."}
+          </p>
+          <p className="text-[12.5px] text-moon-3">The weights come from our API (each forecaster's track record); they are not yet on-chain.</p>
+        </div>
+      )}
     </div>
   );
 }
