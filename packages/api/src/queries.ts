@@ -68,8 +68,22 @@ export class Queries {
       reference: { ok: refAge != null && refAge < 3 * 3600, ageSeconds: refAge },
       rounds: { ok: roundAge != null && roundAge < 45 * 60, ageSeconds: roundAge },
       scoring: { ok: true, lastScoredSecondsAgo: lastScore },
+      chain: this.chainHealth(age),
     };
     return { ok: Object.values(checks).every((c) => c.ok), checks, session: sessionAt(now) };
+  }
+
+  /** With publishing on, the proof must keep landing: a commit and a consumed-token oracle post every round. */
+  private chainHealth(age: (sql: string) => number | null) {
+    if (process.env.NIGHTSHIFT_CHAIN !== "1") return { ok: true, publishing: false };
+    const lastCommit = age(`SELECT MAX(round) * 60000 t FROM commitments WHERE chain_status = 'committed'`);
+    const lastPost = age(`SELECT MAX(computed_at) t FROM consensus WHERE chain_status = 'posted'`);
+    return {
+      ok: lastCommit != null && lastCommit < 3600 && lastPost != null && lastPost < 3600,
+      publishing: true,
+      lastCommitSecondsAgo: lastCommit,
+      lastOraclePostSecondsAgo: lastPost,
+    };
   }
 
   latestRound(): { round: number; ts: number; session: string; state: string; anchor_time: number; n_tokens: number } | null {
