@@ -47,6 +47,8 @@
 - **`40374 RWA_INSUFFICIENT_LIQUIDITY — Insufficient liquidity for a quote. Please decrease the transaction amount or try again later.`** appeared 6 times on Saturday night (Oct 10 20:26 – 23:26 UTC) in our $100 / $1k / $10k bStock quote ladder.
 - **Telemetry so far** (first 6 h with the key, Oct 10 18:28 – Oct 11 00:40 UTC): 5,042 calls, 2,929 clean; mean latency of a clean call 533 ms. Every call is in the `dx_calls` table (endpoint, HTTP status, API code, latency, retries, request id).
 
+- **`GET /api/v1/dex/aggregator/swap` under-states gas ~5×** (Oct 11, 01:11–01:12 UTC). For USDT→NVDAB (5 USDT) and USDT→U (2 USDT) the response's `tx.gas` was **250000**. Signed with 1.3× that (325,000), both swaps reverted after using 97% of it: [0xac350167…bbd8a](https://bscscan.com/tx/0xac350167e642e12124f86f851361bf13fa8f062323f7aefcbaa46b7560bbbd8a) (315,478 gas) and [0x626c0722…f790d](https://bscscan.com/tx/0x626c0722b5ed35bd0d35f90964c1738dff3dc1b3cb7d627cfe482a6a6d2f790d) (315,215 gas). `eth_estimateGas` on the same calldata gives **1,122,468** and **1,232,173**. Both routes were LiquidMesh. The approve step before each swap succeeded, so the API's answers looked fine at every step; only the chain showed the failure.
+
 ## 4. Tokenized-stock specifics (measured by Nightshift)
 
 | Topic | Measurement |

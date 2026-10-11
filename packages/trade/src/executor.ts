@@ -53,8 +53,12 @@ export class EoaExecutor {
   private async signAndBroadcast(tx: { to: `0x${string}`; data: Hex; value?: bigint; gas?: bigint }, mev: boolean): Promise<Hex> {
     const from = this.wallet.address;
     const [nonce, gasPrice] = await Promise.all([pc.getTransactionCount({ address: from, blockTag: "pending" }), pc.getGasPrice()]);
-    const gas = tx.gas ?? (await pc.estimateGas({ account: from, to: tx.to, data: tx.data, value: tx.value ?? 0n }));
-    const signed = await this.wallet.signTransaction({ to: tx.to, data: tx.data, value: tx.value ?? 0n, nonce, gasPrice, gas: (gas * 13n) / 10n, chainId: bsc.id, type: "legacy" });
+    // The Trading API's swap `gas` (250k) was too low for LiquidMesh routes: two swaps reverted at 97% of
+    // 1.3× that figure (0xac3501…, 0x626c07…). Simulate ourselves and use the larger of the two.
+    const estimated = await pc.estimateGas({ account: from, to: tx.to, data: tx.data, value: tx.value ?? 0n }).catch(() => null);
+    if (estimated == null && tx.gas == null) throw new Error(`transaction to ${tx.to} fails in simulation`);
+    const gas = estimated != null && (tx.gas == null || estimated > tx.gas) ? estimated : tx.gas!;
+    const signed = await this.wallet.signTransaction({ to: tx.to, data: tx.data, value: tx.value ?? 0n, nonce, gasPrice, gas: (gas * 15n) / 10n, chainId: bsc.id, type: "legacy" });
     const b = (await this.client.transaction.broadcast({ binanceChainId: CHAIN, signedTransaction: signed.rawTransaction, address: from, enableMevProtection: mev })) as { txHash?: string };
     const hash = (b.txHash ?? signed.hash) as Hex;
     const r = await pc.waitForTransactionReceipt({ hash, timeout: 120_000 });
