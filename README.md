@@ -3,8 +3,10 @@
 Nightshift is a 24/7 price oracle for tokenized stocks on BNB Chain, run by AI agents that get paid only when the opening bell proves them right.
 
 - Each agent commits its forecast of every bStock's next US open on-chain before the market opens.
-- The official open scores them, and ERC-8183 escrow pays only the ones that beat a stale oracle.
+- The official open scores them, and ERC-8183 jobs are built to pay only the ones that beat a stale oracle.
 - Their consensus, a fair value plus a calibrated 90% band, is what lending and trading contracts read at 3 a.m. on a Sunday.
+
+**Live site: [nightshift-production-f4e3.up.railway.app](https://nightshift-production-f4e3.up.railway.app)**. It shows the night sky over Wall Street right now, the 91 bStocks priced for the next open, and every forecast sealed on BNB Chain. You can check any of them from your browser at [/verify](https://nightshift-production-f4e3.up.railway.app/verify).
 
 > Built for **BNB Hack: Tokenized Stocks Edition**. **bStocks** are central (all 91 on BSC). **Ondo** and **xStocks** are priced per real share. BSC mainnet.
 
@@ -20,6 +22,7 @@ Nightshift is a 24/7 price oracle for tokenized stocks on BNB Chain, run by AI a
 
 ### Verify it yourself in 3 minutes (no wallet, no signup)
 
+0. Fastest: open **[/verify](https://nightshift-production-f4e3.up.railway.app/verify)** on the live site. Your browser fetches a forecast's Merkle proof, recomputes the leaf and root, and calls `ForecastBook.verifyForecast` on BSC itself.
 1. Open **[docs/LIVE.md](docs/LIVE.md)** and click any **ForecastBook** commit. Its block time is before the 13:30 UTC open it forecasts.
 2. Ask the API for one forecast and its Merkle proof: `GET /v1/rounds/{round}/proof/nfv/{token}`. Hash the leaf and check it against the root committed in step 1:
    ```
@@ -114,12 +117,13 @@ Two findings we didn't expect:
 
 | Live on BSC mainnet | Built and tested, not live | Designed |
 |---|---|---|
-| ForecastBook commits, oracle reports, AggregatorV3 feeds, the Sunday loan, ERC-8183 jobs, 24/7 collector and scoring, Binance Web3 API feeds ([LIVE.md](docs/LIVE.md)) | Infinity hook (71 Foundry tests, 7 on a mainnet fork), Venus adapter (deployed; Venus itself doesn't read it) | Third-party forecasters joining the network; licensed reference data |
+| ForecastBook commits, oracle reports, AggregatorV3 feeds, ERC-8004 identities, the Sunday loan, an Agentic Wallet buy with its receipt, 24/7 collector and scoring, Binance Web3 API feeds, the website ([LIVE.md](docs/LIVE.md)) | ERC-8183 pay-for-accuracy jobs (create, fund, submit, judge, reclaim; the first open once the escrow holds U), Infinity hook (71 Foundry tests, 7 on a mainnet fork), Venus adapter (deployed; Venus itself doesn't read it) | Third-party forecasters joining the network; licensed reference data |
 
 ## Known limits
 
 - **The dark-hours point gain is modest** (−3% to −8% CRPS). The value in the dark is mostly calibrated uncertainty, which is what a lender needs.
 - **The bands undercover slightly.** That's 86.6% in the weekend-dark backtest and 85.2% on the Oct 9 open, against a 90% target. They are refit as live opens are scored.
+- **No forecaster has been paid yet.** Scores are published every open; ERC-8183 jobs start once the escrow is funded with U.
 - **About 17 weekends of history** exist so far.
 - **Reference opens and closes come from a public source** in this build. Production would use a licensed feed.
 - **Pre-IPO tokens are excluded automatically** (SpaceX, Cerebras, Quantinuum): they have no public reference, and their tickers collide with unrelated listed securities.
