@@ -112,7 +112,7 @@ export default function Scoreboard() {
         <h2 id="opens-title" className="text-[clamp(1.8rem,3vw,2.6rem)] font-[300]">
           Open by open
         </h2>
-        <div className="mt-6 overflow-x-auto">
+        <div className="mt-6 overflow-x-auto" tabIndex={0} role="region" aria-label="Scores by open, scrolls sideways">
           <table className="w-full min-w-[640px] text-[14px]">
             <thead className="text-[12.5px] text-moon-2">
               <tr className="border-b border-rule">
@@ -179,7 +179,7 @@ export default function Scoreboard() {
           The backtest behind it
         </h2>
         <p className="mt-2 max-w-[62ch] text-moon-2">Strict leave-one-gap-out over every gap since bStocks listed: {BACKTEST.all.n.toLocaleString("en-US")} forecasts. CRPS in bps, lower is better.</p>
-        <div className="mt-6 overflow-x-auto">
+        <div className="mt-6 overflow-x-auto" tabIndex={0} role="region" aria-label="Backtest by horizon, scrolls sideways">
           <table className="w-full min-w-[640px] text-[14px]">
             <thead className="text-[12.5px] text-moon-2">
               <tr className="border-b border-rule">

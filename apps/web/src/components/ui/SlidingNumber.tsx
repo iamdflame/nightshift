@@ -29,7 +29,8 @@ export function SlidingNumber({ value, format, className = "" }: { value: number
   // Right-align digits so 99.99 → 100.01 rolls correctly.
   const chars = text.split("");
   return (
-    <span className={`num ns-slide inline-flex ${dir === "up" ? "ns-flash-up" : dir === "down" ? "ns-flash-down" : ""} ${className}`} aria-label={text}>
+    <span className={`num ns-slide inline-flex ${dir === "up" ? "ns-flash-up" : dir === "down" ? "ns-flash-down" : ""} ${className}`}>
+      <span className="sr-only">{text}</span>
       {chars.map((c, i) => {
         const key = chars.length - i;
         if (!/\d/.test(c)) return (

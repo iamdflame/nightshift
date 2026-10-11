@@ -157,7 +157,7 @@ export default function RealityScores() {
           Out of sample, over {a.n.toLocaleString("en-US")} forecasts since bStocks launched, Nightshift's error is {Math.round((1 - a.crps_v2_bps / a.crps_stale_bps) * 100)}% lower than the stale oracle lenders
           use today. Deep in the weekend nobody knows much; as the restart approaches, the 24/7 market starts telling the truth, and Nightshift reads it.
         </Heading>
-        <div className="mt-14 grid gap-8 lg:grid-cols-[1.35fr_1fr]">
+        <div className="mt-14 grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
           <BacktestChart />
           <div>
             <p className="text-[14px] font-medium text-moon-1">Live, since Thursday</p>

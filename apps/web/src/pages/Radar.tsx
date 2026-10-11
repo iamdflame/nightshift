@@ -133,7 +133,7 @@ export default function Radar() {
   return (
     <div className="mx-auto max-w-[1320px] px-4 pb-24 pt-28 sm:px-6">
       <title>Radar · Nightshift</title>
-      <header className="grid gap-8 lg:grid-cols-[1.3fr_1fr] lg:items-end">
+      <header className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] lg:items-end">
         <div>
           <p className="text-[14px] font-medium text-sodium/90">Radar</p>
           <h1 className="mt-3 text-[clamp(2.6rem,5vw,4.4rem)] font-[300]">Every stock, priced through the night.</h1>

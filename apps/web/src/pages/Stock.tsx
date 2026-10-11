@@ -109,7 +109,7 @@ export default function Stock() {
       <Link to="/radar" viewTransition className="inline-flex items-center gap-1.5 text-[13.5px] text-moon-2 hover:text-moon-0">
         <ArrowLeft size={14} strokeWidth={1.5} /> Radar
       </Link>
-      <header className="mt-6 grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end">
+      <header className="mt-6 grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
         <div>
           <p className="text-[14px] text-moon-2">
             <span className="num text-moon-0">{sym}</span> {ticker && <>, the bStock for {ticker} on BNB Chain</>}
@@ -146,13 +146,13 @@ export default function Stock() {
 
       <div className="mt-10">{h ? <FanChart h={h} /> : <div className="card h-[420px] animate-pulse" />}</div>
 
-      <div className="mt-10 grid gap-8 lg:grid-cols-[1.4fr_1fr]">
+      <div className="mt-10 grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         <section aria-labelledby="ledger-title" className="card p-5">
           <h2 id="ledger-title" className="font-sans text-[18px] font-medium tracking-normal">
             Forecast ledger
           </h2>
           <p className="mt-1 text-[13.5px] text-moon-3">Every round sealed for this bell, newest first, like an ephemeris.</p>
-          <div className="mt-4 overflow-x-auto">
+          <div className="mt-4 overflow-x-auto" tabIndex={0} role="region" aria-label="Forecast ledger, scrolls sideways">
             <table className="w-full text-[13px]">
               <thead className="text-moon-2">
                 <tr className="border-b border-rule">

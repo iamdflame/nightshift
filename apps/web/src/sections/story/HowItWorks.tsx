@@ -179,15 +179,15 @@ export default function HowItWorks() {
         <Heading id="how-title" kicker="How it works" title="How a forecast becomes a price.">
           Three AI agents forecast every stock. Reality grades them. Contracts read what survives.
         </Heading>
-        <div className="mt-16 grid gap-14 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.3fr)] lg:gap-20">
+        <div className="mt-16 grid grid-cols-[minmax(0,1fr)] gap-14 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.3fr)] lg:gap-20">
           <ol className="relative grid gap-3">
             {STEPS.map((s, i) => (
-              <li key={s.t} className={`ns-step rounded-[12px] p-5 transition-colors duration-300 ${active === i ? "bg-night-2 shadow-[var(--elev-1)]" : "opacity-60"}`}>
+              <li key={s.t} className={`ns-step rounded-[12px] p-5 transition-colors duration-300 ${active === i ? "bg-night-2 shadow-[var(--elev-1)]" : ""}`}>
                 <div className="flex items-baseline gap-3">
                   <span className={`num text-[13px] ${active === i ? "text-sodium" : "text-moon-3"}`}>{String(i + 1).padStart(2, "0")}</span>
-                  <h3 className="font-display text-[1.7rem] font-[350]">{s.t}</h3>
+                  <h3 className={`font-display text-[1.7rem] font-[350] transition-colors duration-300 ${active === i ? "text-moon-0" : "text-moon-2"}`}>{s.t}</h3>
                 </div>
-                <p className="mt-2 max-w-[48ch] text-[15.5px] text-moon-2">{s.d}</p>
+                <p className={`mt-2 max-w-[48ch] text-[15.5px] transition-colors duration-300 ${active === i ? "text-moon-1" : "text-moon-3"}`}>{s.d}</p>
                 <div className="mt-3">{artifact(i)}</div>
               </li>
             ))}

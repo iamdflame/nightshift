@@ -116,7 +116,7 @@ export default function Proof() {
         </dl>
       )}
 
-      <div className="mt-12 grid gap-12 lg:grid-cols-[1.35fr_1fr]">
+      <div className="mt-12 grid grid-cols-[minmax(0,1fr)] gap-12 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
         <section aria-labelledby="log-title">
           <h2 id="log-title" className="sr-only">
             Log
