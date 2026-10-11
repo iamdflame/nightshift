@@ -5,7 +5,7 @@ keys/
 **/keys/
 **/.studio/
 **/.env.local
-data/
+/data/
 .apex/
 .git/
 **/node_modules/
