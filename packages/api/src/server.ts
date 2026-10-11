@@ -4,17 +4,24 @@
  *   pnpm exec tsx packages/api/src/server.ts      (PORT, default 8787)
  */
 import cors from "@fastify/cors";
+import rateLimit from "@fastify/rate-limit";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import Fastify from "fastify";
 import { buildReceipt } from "@nightshift/trade";
 import { buildMcpServer } from "./mcp.ts";
 import { openapi } from "./openapi.ts";
+import { loadEnv } from "@nightshift/tape";
 import { Queries } from "./queries.ts";
+import { registerX402 } from "./x402.ts";
 
+loadEnv(); // Binance Web3 API key (B402 facilitator for /x402)
 const PORT = Number(process.env.PORT ?? 8787);
 const q = new Queries();
 const app = Fastify({ logger: { level: process.env.LOG_LEVEL ?? "info" } });
-await app.register(cors, { origin: true });
+await app.register(cors, { origin: true, exposedHeaders: ["PAYMENT-REQUIRED", "PAYMENT-RESPONSE"] });
+// Public on the internet: 120 requests/min per client; receipts (RPC-heavy) get their own lower limit below.
+await app.register(rateLimit, { max: 120, timeWindow: "1 minute" });
+await registerX402(app, q);
 
 app.get("/", async () => ({
   name: "Nightshift",
@@ -51,7 +58,7 @@ app.get<{ Params: { round: string; forecaster: string; token: string } }>("/v1/r
 });
 app.get("/v1/scoreboard", async () => ({ scoreboard: q.scoreboard() }));
 // Receipt v1: what any BSC tokenized-stock trade cost per real share vs the fair value at that moment.
-app.get<{ Params: { tx: string }; Querystring: { trader?: string } }>("/v1/receipts/:tx", async (req, reply) => {
+app.get<{ Params: { tx: string }; Querystring: { trader?: string } }>("/v1/receipts/:tx", { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } }, async (req, reply) => {
   if (!/^0x[0-9a-fA-F]{64}$/.test(req.params.tx)) return reply.code(400).send({ error: "tx must be a 32-byte hex hash" });
   try {
     return await buildReceipt(req.params.tx as `0x${string}`, { trader: req.query.trader });
