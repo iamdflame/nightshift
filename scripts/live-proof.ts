@@ -1,98 +1,96 @@
 /**
  * Writes docs/LIVE.md: every on-chain fact Nightshift can show, as BscScan links a judge can click without a
- * wallet. Built only from deployments/*.json and the database's recorded transaction hashes, so the page never
- * claims more than the chain holds.
+ * wallet. Rendered from the API's /v1/onchain view, which is built only from deployments/*.json and the
+ * database's recorded transaction hashes, so the page never claims more than the chain holds. Point it at the
+ * host that publishes (its database has the commit and post hashes), or leave the URL off to read the local one:
  *
+ *   pnpm exec tsx scripts/live-proof.ts https://nightshift-production-f4e3.up.railway.app
  *   pnpm exec tsx scripts/live-proof.ts
  */
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { DatabaseSync } from "node:sqlite";
+import { writeFileSync } from "node:fs";
+import type { Queries } from "../packages/api/src/queries.ts";
 
-const DB = process.env.NIGHTSHIFT_DB ?? "data/tape.sqlite";
-const read = <T>(p: string): T | null => (existsSync(p) ? (JSON.parse(readFileSync(p, "utf8")) as T) : null);
+type OnChain = ReturnType<Queries["onchain"]>;
+interface Loan {
+  steps: Record<string, { tx?: string; at: string; [k: string]: unknown }>;
+  summary?: Record<string, string>;
+}
+interface Trade {
+  wallet: string;
+  txHash: string;
+  receipt: { tca: { verdict: string }; pricePerToken: number; amountToken: number; amountUsd: number; reference: { fairValue: number; lower: number; upper: number; round: number } | null };
+}
+
+const SITE = "https://nightshift-production-f4e3.up.railway.app";
+const base = process.argv[2]?.replace(/\/+$/, "");
+const oc: OnChain = base
+  ? ((await (await fetch(`${base}/v1/onchain`, { headers: { accept: "application/json" } })).json()) as OnChain)
+  : new (await import("../packages/api/src/queries.ts")).Queries().onchain();
+
+const iso = (ms: number) => new Date(ms).toISOString().replace(/\.\d{3}Z$/, "Z");
 const addr = (a: string) => `[\`${a}\`](https://bscscan.com/address/${a})`;
 const txl = (h: string | null | undefined, label = "tx") => (h ? `[${label}](https://bscscan.com/tx/${h})` : "–");
-const iso = (ms: number) => new Date(ms).toISOString().replace(".000Z", "Z");
-
-const dep = read<Record<string, unknown> & { feeds?: Record<string, string> }>("deployments/56.json");
-const agents = read<Record<string, { agentId: number | null; address: string; tx: string }>>("deployments/agents.json");
-const loan = read<{ steps: Record<string, { tx?: string; at: string; [k: string]: unknown }>; summary?: Record<string, string> }>("deployments/sunday-loan.json");
-const db = new DatabaseSync(DB, { readOnly: true });
-const has = (t: string) => Boolean(db.prepare(`SELECT 1 FROM sqlite_master WHERE type='table' AND name=?`).get(t));
-const sym = new Map((db.prepare(`SELECT lower(address) a, symbol FROM instruments WHERE chain_id = 56`).all() as { a: string; symbol: string }[]).map((r) => [r.a, r.symbol]));
 
 const out: string[] = [];
 out.push("# Nightshift, live on BSC mainnet", "");
-out.push(`Generated ${iso(Date.now())} from \`deployments/*.json\` and the transaction hashes the system recorded (\`pnpm exec tsx scripts/live-proof.ts\`). Every link opens on BscScan; no wallet needed.`, "");
+out.push(
+  `Generated ${iso(Date.now())} from ${base ? `\`${base}/v1/onchain\`` : "the local database"} (\`pnpm exec tsx scripts/live-proof.ts${base ? ` ${base}` : ""}\`), which lists only transaction hashes the system recorded. Every link opens on BscScan; no wallet needed. The always-current version is the site's [On-chain proof](${SITE}/proof) page, and any sealed forecast can be checked from your browser at [/verify](${SITE}/verify).`,
+  "",
+);
 
 out.push("## Contracts", "");
-if (!dep) out.push("_Not deployed yet._", "");
+if (!oc.contracts.length) out.push("_Not deployed yet._", "");
 else {
+  out.push(`Deployed at block ${oc.deployBlock?.toLocaleString("en-US") ?? "–"}.`, "");
   out.push("| Contract | Address | What it does |", "|---|---|---|");
-  const roles: Record<string, string> = {
-    ForecastBook: "Forecasters commit a Merkle root of every forecast before the open (proof of foresight), then reveal",
-    NightshiftOracle: "Consensus fair value + 90% next-open band per token, posted by the Scorer",
-    NightshiftCredit: "Borrow USDT against bStocks 24/7; collateral counts at the band's lower edge",
-    NightshiftVenusOracle: "Venus `OracleInterface` adapter over the same reports",
-  };
-  for (const [k, v] of Object.entries(roles)) if (typeof dep[k] === "string") out.push(`| ${k} | ${addr(dep[k] as string)} | ${v} |`);
-  for (const [token, feed] of Object.entries(dep.feeds ?? {})) out.push(`| AggregatorV3 feed: ${sym.get(token.toLowerCase()) ?? token} | ${addr(feed)} | Chainlink-compatible \`latestRoundData()\` |`);
+  for (const c of oc.contracts) out.push(`| ${c.name} | ${addr(c.address)} | ${c.role} |`);
+  for (const f of oc.feeds) out.push(`| AggregatorV3 feed: ${f.symbol} | ${addr(f.feed)} | Chainlink-compatible \`latestRoundData()\` |`);
   out.push("");
 }
 
-if (agents && Object.keys(agents).length) {
-  out.push("## Agents (ERC-8004 identities)", "", "| Role | Agent ID | Wallet | Registration |", "|---|---|---|---|");
-  for (const [role, a] of Object.entries(agents)) out.push(`| ${role} | ${a.agentId ?? "–"} | ${addr(a.address)} | ${txl(a.tx)} |`);
+if (oc.agents.length) {
+  out.push("## Agents (ERC-8004 identities)", "", "| Agent | Agent ID | Wallet | Registration |", "|---|---|---|---|");
+  for (const a of oc.agents) out.push(`| ${a.name} | ${a.agentId ?? "–"} | ${addr(a.address)} | ${txl(a.tx)} |`);
   out.push("");
 }
 
-if (has("commitments")) {
-  const rows = db
-    .prepare(`SELECT anchor_time, forecaster, COUNT(*) n, MIN(round) r0, MAX(round) r1, MAX(tx_hash) last FROM commitments WHERE chain_status = 'committed' GROUP BY anchor_time, forecaster ORDER BY anchor_time DESC, forecaster LIMIT 30`)
-    .all() as { anchor_time: number; forecaster: string; n: number; r0: number; r1: number; last: string }[];
-  out.push("## Proof of foresight (ForecastBook)", "");
-  if (!rows.length) out.push("_No commitments on-chain yet._", "");
-  else {
-    out.push("Each row: a forecaster's Merkle roots committed **before** that open. Any single forecast can be checked against its root with `/v1/rounds/{round}/proof/{forecaster}/{token}`.", "");
-    out.push("| Open (UTC) | Forecaster | Rounds committed | Latest commit |", "|---|---|---|---|");
-    for (const r of rows) out.push(`| ${iso(r.anchor_time)} | ${r.forecaster} | ${r.n} (rounds ${r.r0}–${r.r1}) | ${txl(r.last)} |`);
-    out.push("");
-  }
+out.push("## Proof of foresight (ForecastBook)", "");
+if (!oc.commitments.length) out.push("_No commitments on-chain yet._", "");
+else {
+  out.push("Each row: a forecaster's Merkle roots, each covering its forecasts for every bStock, committed **before** that open. Any single forecast can be checked against its root with `/v1/rounds/{round}/proof/{forecaster}/{token}`, or on the site's verify page.", "");
+  out.push("| Open (UTC) | Forecaster | Roots committed | Latest commit |", "|---|---|---|---|");
+  for (const c of oc.commitments) out.push(`| ${iso(c.anchorTime)} | ${c.forecaster} | ${c.rounds} (rounds ${c.firstRound}–${c.lastRound}) | ${txl(c.lastTx)} |`);
+  out.push("");
 }
 
-if (has("consensus")) {
-  const rows = db
-    .prepare(`SELECT c.token, c.symbol, c.round, c.fair_value, c.lower, c.upper, c.computed_at, c.tx_hash FROM consensus c JOIN (SELECT token, MAX(round) r FROM consensus WHERE chain_status = 'posted' GROUP BY token) m ON m.token = c.token AND m.r = c.round ORDER BY c.symbol LIMIT 12`)
-    .all() as { symbol: string; round: number; fair_value: number; lower: number; upper: number; computed_at: number; tx_hash: string }[];
-  const posts = (db.prepare(`SELECT COUNT(DISTINCT tx_hash) n, COUNT(*) reports FROM consensus WHERE chain_status = 'posted'`).get() as { n: number; reports: number });
-  out.push("## Oracle reports (NightshiftOracle)", "");
-  if (!rows.length) out.push("_No reports posted yet._", "");
-  else {
-    out.push(`${posts.reports} reports in ${posts.n} transactions so far. Latest per token (first 12):`, "");
-    out.push("| Token | Round | Fair value | 90% next-open band | Posted | Tx |", "|---|---|---|---|---|---|");
-    for (const r of rows) out.push(`| ${r.symbol} | ${r.round} | $${r.fair_value.toFixed(2)} | $${r.lower.toFixed(2)} – $${r.upper.toFixed(2)} | ${iso(r.computed_at)} | ${txl(r.tx_hash)} |`);
-    out.push("");
-  }
+out.push("## Oracle reports (NightshiftOracle)", "");
+if (!oc.oracle.reports) out.push("_No reports posted yet._", "");
+else {
+  out.push(`${oc.oracle.reports} reports in ${oc.oracle.txs} transactions so far. The most recent:`, "");
+  out.push("| Token | Round | Fair value | 90% next-open band | Posted | Tx |", "|---|---|---|---|---|---|");
+  for (const r of oc.oracle.latest.slice(0, 12)) out.push(`| ${r.symbol} | ${r.round} | $${r.fairValue.toFixed(2)} | $${r.lower.toFixed(2)} – $${r.upper.toFixed(2)} | ${iso(r.computedAt)} | ${txl(r.tx)} |`);
+  out.push("");
 }
 
+const loan = oc.sundayLoan as Loan | null;
 if (loan?.steps && Object.keys(loan.steps).length) {
-  out.push("## The Sunday loan (NightshiftCredit)", "");
+  out.push("## The weekend loan (NightshiftCredit)", "");
   const s = loan.steps;
   const line = (k: string, what: string) => s[k] && out.push(`- ${what} (${s[k]!.at}): ${txl(s[k]!.tx)}`);
-  line("buy", `Bought NVDAB through the Binance Trading API${s.buy?.verdict ? `: ${s.buy.verdict}` : ""}`);
-  line("lend", `Treasury lent ${s.lend?.usdt ?? ""} USDT into the vault`);
-  line("collateral", `Posted ${s.collateral?.nvdab ?? ""} NVDAB as collateral`);
-  line("borrow", `Borrowed ${s.borrow?.usdt ?? ""} USDT against it`);
+  line("buy", `Bought NVDAB through the Binance Trading API${s.buy?.verdict ? `: ${String(s.buy.verdict)}` : ""}`);
+  line("lend", `Treasury lent ${String(s.lend?.usdt ?? "")} USDT into the vault`);
+  line("collateral", `Posted ${String(s.collateral?.nvdab ?? "")} NVDAB as collateral`);
+  line("borrow", `Borrowed ${String(s.borrow?.usdt ?? "")} USDT against it`);
   if (loan.summary)
     out.push("", `Collateral is valued at **$${Number(loan.summary.valuedAt).toFixed(2)}** (the lower edge of the 90% band for Monday's open), not the $${Number(loan.summary.fairValue).toFixed(2)} fair value. Health factor ${Number(loan.summary.healthFactor).toFixed(2)}.`);
   out.push("");
 }
 
-const awTrades = read<{ wallet: string; command: string; txHash: string; receipt: { tca: { verdict: string; vsFairValueBps: number | null }; pricePerToken: number; amountToken: number; amountUsd: number; reference: { fairValue: number; lower: number; upper: number; round: number } | null; receiptHash: string } }[]>("deployments/agentic-wallet-trades.json");
-if (awTrades?.length) {
+const trades = oc.agenticWalletTrades as Trade[];
+if (trades.length) {
   out.push("## Binance Agentic Wallet trades (Wallet Skill + receipts)", "");
   out.push("| Trade | Price paid | Fair value at that moment (90% band) | Receipt verdict | Tx |", "|---|---|---|---|---|");
-  for (const t of awTrades) {
+  for (const t of trades) {
     const r = t.receipt;
     out.push(
       `| $${r.amountUsd} → ${r.amountToken.toFixed(6)} NVDAB from ${addr(t.wallet)} | $${r.pricePerToken.toFixed(2)} | ${r.reference ? `$${r.reference.fairValue.toFixed(2)} ($${r.reference.lower.toFixed(2)} – $${r.reference.upper.toFixed(2)}), round ${r.reference.round}` : "–"} | ${r.tca.verdict} | ${txl(t.txHash)} |`,
@@ -101,28 +99,21 @@ if (awTrades?.length) {
   out.push("", "Receipts are rebuilt from the chain's Transfer logs: `GET /v1/receipts/{tx}?trader={wallet}`; the `receiptHash` pins every number.", "");
 }
 
-if (has("jobs")) {
-  const rows = db.prepare(`SELECT job_id, forecaster, anchor_time, budget, status, create_tx, fund_tx, submit_tx, verdict, judge_tx FROM jobs ORDER BY anchor_time DESC, forecaster LIMIT 30`).all() as Record<string, string | number | null>[];
-  if (rows.length) {
-    out.push("## Pay-for-accuracy (ERC-8183 jobs on BNB's commerce contracts)", "");
-    out.push("| Open (UTC) | Forecaster | Job | Budget (U) | Status | Create | Fund | Submit | Verdict |", "|---|---|---|---|---|---|---|---|---|");
-    for (const r of rows)
-      out.push(`| ${iso(Number(r.anchor_time))} | ${r.forecaster} | ${r.job_id} | ${Number(r.budget) / 1e18} | ${r.status} | ${txl(r.create_tx as string)} | ${txl(r.fund_tx as string)} | ${txl(r.submit_tx as string)} | ${r.verdict ?? "–"} ${r.judge_tx ? txl(r.judge_tx as string, "dispute/settle") : ""} |`);
-    out.push("");
-  }
+out.push("## Pay-for-accuracy (ERC-8183 jobs on BNB's commerce contracts)", "");
+if (!oc.jobs.length) out.push("_No jobs on-chain yet: they open once the escrow holds U. Until then the scores below are published, not paid._", "");
+else {
+  out.push("| Open (UTC) | Forecaster | Job | Budget (U) | Status | Create | Fund | Submit | Verdict |", "|---|---|---|---|---|---|---|---|---|");
+  for (const j of oc.jobs)
+    out.push(`| ${iso(j.anchorTime)} | ${j.forecaster} | ${j.jobId} | ${Number(j.budget) / 1e18} | ${j.status} | ${txl(j.createTx)} | ${txl(j.fundTx)} | ${txl(j.submitTx)} | ${j.verdict ?? "–"} ${j.judgeTx ? txl(j.judgeTx, "dispute/settle") : ""} |`);
+  out.push("");
 }
 
-if (has("scores")) {
-  const rows = db
-    .prepare(`SELECT anchor_time, forecaster, COUNT(*) n, AVG(crps) crps, AVG(abs_err) mae, AVG(covered) cov FROM scores GROUP BY anchor_time, forecaster ORDER BY anchor_time DESC, forecaster`)
-    .all() as { anchor_time: number; forecaster: string; n: number; crps: number; mae: number; cov: number }[];
-  if (rows.length) {
-    out.push("## Scored by reality (every official open since Oct 8)", "", "CRPS and MAE in basis points of price, lower is better; coverage = share of opens inside the 90% band.", "");
-    out.push("| Open (UTC) | Forecaster | Forecasts | CRPS | MAE | 90% band coverage |", "|---|---|---|---|---|---|");
-    for (const r of rows) out.push(`| ${iso(r.anchor_time)} | ${r.forecaster} | ${r.n} | ${(r.crps * 1e4).toFixed(1)} | ${(r.mae * 1e4).toFixed(1)} | ${(r.cov * 100).toFixed(1)}% |`);
-    out.push("");
-  }
+if (oc.scores.length) {
+  out.push("## Scored by reality (every official open since Oct 8)", "", "CRPS and MAE in basis points of price, lower is better; coverage = share of opens inside the 90% band.", "");
+  out.push("| Open (UTC) | Forecaster | Forecasts | CRPS | MAE | 90% band coverage |", "|---|---|---|---|---|---|");
+  for (const r of oc.scores) out.push(`| ${iso(r.anchorTime)} | ${r.forecaster} | ${r.n} | ${r.crpsBps.toFixed(1)} | ${r.maeBps.toFixed(1)} | ${(r.coverage * 100).toFixed(1)}% |`);
+  out.push("");
 }
 
 writeFileSync("docs/LIVE.md", `${out.join("\n")}\n`);
-console.log(`docs/LIVE.md: ${out.length} lines`);
+console.log(`docs/LIVE.md: ${out.length} lines from ${base ?? "the local database"}`);
