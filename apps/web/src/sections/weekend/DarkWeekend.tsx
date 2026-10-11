@@ -60,11 +60,11 @@ function Captions({ index, openHours, sealed, darkHours }: { index: number; open
   ];
   const it = items[Math.min(index, items.length - 1)]!;
   return (
-    <div className="relative min-h-[11rem]" aria-live="polite">
+    <div className="relative min-h-[7.5rem] md:min-h-[11rem]" aria-live="polite">
       <AnimatePresence mode="wait">
         <motion.div key={index} initial={{ opacity: 0, y: 14, filter: "blur(6px)" }} animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} exit={{ opacity: 0, y: -10, filter: "blur(6px)" }} transition={{ duration: 0.45 }}>
-          <h3 className="text-[clamp(1.9rem,3.2vw,2.9rem)] font-[300] leading-[1.06]">{it.h}</h3>
-          <p className="mt-3 max-w-[46ch] text-[16px] leading-relaxed text-moon-2">{it.p}</p>
+          <h3 className="text-[clamp(1.6rem,3.2vw,2.9rem)] font-[300] leading-[1.06]">{it.h}</h3>
+          <p className="mt-2 max-w-[46ch] text-[14.5px] leading-relaxed text-moon-2 md:mt-3 md:text-[16px] [@media(max-height:700px)]:hidden">{it.p}</p>
         </motion.div>
       </AnimatePresence>
     </div>
@@ -152,37 +152,41 @@ export default function DarkWeekend() {
   return (
     <section ref={root} className="relative h-[100svh] overflow-hidden bg-night-0" aria-labelledby="weekend-title">
       <div className="absolute inset-0 bg-[radial-gradient(60%_70%_at_70%_45%,rgb(29_40_67/0.6),transparent_70%)]" aria-hidden />
-      <div className={`absolute ${mobile ? "inset-x-0 top-16 h-[46svh]" : "inset-y-0 right-0 w-[64%]"}`} aria-hidden>
+      <div className={`absolute ${mobile ? "inset-x-0 top-14 h-[33svh]" : "inset-y-0 right-0 w-[64%]"}`} aria-hidden>
         <Suspense fallback={null}>
           <Earth timeRef={timeRef} active={reduce ? false : inView} mobile={mobile} />
         </Suspense>
       </div>
-      <div className="relative mx-auto flex h-full max-w-[1320px] flex-col justify-between px-4 pb-8 pt-24 sm:px-6 md:pt-28">
-        <div className={mobile ? "mt-[40svh]" : "max-w-[34rem]"}>
+      <div className="relative mx-auto flex h-full max-w-[1320px] flex-col justify-between px-4 pb-5 pt-20 sm:px-6 md:pb-8 md:pt-28">
+        <div className={mobile ? "mt-[29svh]" : "max-w-[34rem]"}>
           <p id="weekend-title" className="text-[14px] font-medium text-sodium/90">
             The dark weekend
           </p>
           <div className="mt-3 flex items-baseline gap-4">
-            <time className="font-display text-[clamp(2.6rem,5vw,4.4rem)] font-[300] leading-none text-moon-0">{etClock.format(simT)} ET</time>
+            <time className="whitespace-nowrap font-display text-[clamp(2.4rem,5vw,4.4rem)] font-[300] leading-none text-moon-0">{etClock.format(simT)} ET</time>
           </div>
-          <p className="num mt-2 text-[13px] text-moon-3">
-            {utcClock.format(simT)} UTC, {elapsed.toFixed(1)} h of {darkHours} h without a reference price
+          <p className="num mt-2 text-[12.5px] text-moon-3 md:text-[13px]">
+            <span className="max-sm:hidden">{utcClock.format(simT)} UTC, </span>
+            {elapsed.toFixed(1)} h of {darkHours} h without a reference price
           </p>
-          <div className="mt-8">
+          <div className="mt-4 md:mt-8">
             <Captions index={reduce ? 3 : caption} openHours={openHours} sealed={commits.length} darkHours={darkHours} />
           </div>
         </div>
 
-        <div className="relative mt-6">
-          <div className="mb-2 flex flex-wrap items-end justify-between gap-3 text-[12.5px] text-moon-3">
-            <span>NVDAB, consensus for Monday's open and each agent's sealed forecasts</span>
+        <div className="relative mt-4 md:-mx-4 md:mt-6 md:rounded-[12px] md:bg-night-0/70 md:px-4 md:pb-3 md:pt-3">
+          <div className="mb-2 flex flex-wrap items-end justify-between gap-x-3 gap-y-1 text-[12.5px] text-moon-3">
+            <span>
+              NVDAB<span className="max-sm:hidden">, consensus for Monday's open and each agent's sealed forecasts</span>
+            </span>
             {cur && (
               <span className="num text-moon-1">
                 {usd(cur.fairValue)} <span className="text-moon-3">band</span> {usd(cur.lower)} – {usd(cur.upper)}
               </span>
             )}
           </div>
-          <svg viewBox="0 0 1000 150" preserveAspectRatio="none" className="h-[132px] w-full overflow-visible" role="img" aria-label={`NVDAB consensus for the bell over ${pts.length} rounds, ${commits.length} forecasts sealed on BNB Chain`}>
+          <div className="relative">
+          <svg viewBox="0 0 1000 150" preserveAspectRatio="none" className="h-[92px] w-full overflow-visible md:h-[132px]" role="img" aria-label={`NVDAB consensus for the bell over ${pts.length} rounds, ${commits.length} forecasts sealed on BNB Chain`}>
             <defs>
               <clipPath id="ns-week-clip">
                 <rect ref={clip} x="0" y="-10" width={reduce ? 1000 : 0} height="170" />
@@ -198,25 +202,37 @@ export default function DarkWeekend() {
               {pts.length > 0 && <path d={step((q) => q.fairValue)} fill="none" stroke="#FFB23F" strokeOpacity="0.35" strokeDasharray="3 4" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />}
               {pts.length > 0 && <path d={step((q) => q.fairValue)} fill="none" stroke="#FFB23F" strokeWidth="2" vectorEffect="non-scaling-stroke" clipPath="url(#ns-week-real)" />}
               <line x1={nowX} x2={nowX} y1="0" y2="100" stroke="#F4F1E8" strokeOpacity="0.7" strokeWidth="1" vectorEffect="non-scaling-stroke" />
-              <text x={nowX + 6} y="12" fontSize="10.5" fill="#E4E1D6">
-                now
-              </text>
               {(["anchor", "echo", "nfv"] as const).map((f, li) =>
                 commits
                   .filter((c) => c.forecaster === f)
                   .map((c) => <rect key={`${f}-${c.round}`} x={X(c.t) - 1} y={108 + li * 13} width="2.2" height="9" fill={LANE[f]} />),
               )}
             </g>
-            {(["anchor", "echo", "nfv"] as const).map((f, li) => (
-              <text key={f} x="-6" y={116 + li * 13} textAnchor="end" fontSize="10" fill="#7C859D">
-                {f}
-              </text>
-            ))}
             <line x1="1000" x2="1000" y1="0" y2="150" stroke="#FFB23F" strokeWidth="1.5" strokeDasharray={atBell ? undefined : "4 4"} vectorEffect="non-scaling-stroke" />
           </svg>
-          <div className="mt-1 flex justify-between text-[12px] text-moon-3">
-            <span>Friday close, {etClock.format(close)} ET</span>
-            <span className={atBell ? "text-sodium" : ""}>The bell, {etClock.format(bell)} ET</span>
+            {(reduce || p * 1000 >= nowX) && (
+              <span className="absolute top-0 ml-1.5 text-[11px] leading-none text-moon-1" style={{ left: `${nowX / 10}%` }}>
+                now
+              </span>
+            )}
+          </div>
+          <div className="mt-1.5 flex items-center justify-between gap-3 text-[12px] text-moon-3">
+            <span>
+              <span className="max-sm:hidden">Friday close, </span>
+              {etClock.format(close)} ET
+            </span>
+            <span className="flex items-center gap-3" aria-label="Sealed forecasts by agent">
+              {(["anchor", "echo", "nfv"] as const).map((f) => (
+                <span key={f} className="inline-flex items-center gap-1.5">
+                  <span className="h-2.5 w-[3px] rounded-[1px]" style={{ background: LANE[f] }} aria-hidden />
+                  {f}
+                </span>
+              ))}
+            </span>
+            <span className={atBell ? "text-sodium" : ""}>
+              <span className="max-sm:hidden">The bell, </span>
+              {etClock.format(bell)} ET
+            </span>
           </div>
         </div>
       </div>

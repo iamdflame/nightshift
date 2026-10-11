@@ -112,7 +112,8 @@ export default function Stock() {
       <header className="mt-6 grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
         <div>
           <p className="text-[14px] text-moon-2">
-            <span className="num text-moon-0">{sym}</span> {ticker && <>, the bStock for {ticker} on BNB Chain</>}
+            <span className="num text-moon-0">{sym}</span>
+            {ticker && <>, the bStock for {ticker} on BNB Chain</>}
           </p>
           <p className="mt-3 text-[13px] text-moon-3">{open ? "Live fair value (market open)" : `Fair value for the open, ${et(bell)}`}</p>
           <div className="mt-1 text-[clamp(3rem,7vw,5.6rem)] font-[300] leading-none text-moon-0">

@@ -101,9 +101,9 @@ function Globe({ timeRef, mobile }: { timeRef: MutableRefObject<number>; mobile:
 
 function Camera({ mobile }: { mobile: boolean }) {
   useFrame(({ camera }) => {
-    const p = latLonToVec(28, -80, mobile ? 3.6 : 3.25);
+    const p = latLonToVec(28, -80, mobile ? 4.15 : 3.25);
     camera.position.copy(p);
-    camera.lookAt(mobile ? 0 : -0.42, mobile ? 0.1 : 0.06, 0);
+    camera.lookAt(mobile ? 0 : -0.42, mobile ? 0 : 0.06, 0);
   });
   return null;
 }

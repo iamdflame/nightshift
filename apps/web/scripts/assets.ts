@@ -69,12 +69,13 @@ async function textures() {
   await sharp(out, { raw: { width: W, height: H, channels: 3 } }).png({ compressionLevel: 9 }).toFile(join(PUB, "tex", "moon-normal-1k.png"));
   console.log("tex moon: color 2k/1k + normal 1k");
 
-  // Earth: Black Marble 2016 (night lights) + Blue Marble NG January (day), public domain.
+  // Earth: Black Marble 2016 (night lights) + Blue Marble NG October (day, the season the site runs in), public domain.
   const night = await fetchTo("https://assets.science.nasa.gov/content/dam/science/esd/eo/images/imagerecords/144000/144898/BlackMarble_2016_01deg.jpg", "blackmarble_01deg.jpg");
   await sharp(night).resize(2048, 1024).jpeg({ quality: 82, mozjpeg: true }).toFile(join(PUB, "tex", "earth-night-2k.jpg"));
-  const day = await fetchTo("https://assets.science.nasa.gov/dynamicimage/assets/science/esd/eo/images/bmng/bmng-topography-bathymetry/january/world.topo.bathy.200401.3x5400x2700.jpg", "bluemarble_jan.jpg");
-  await sharp(day).resize(2048, 1024).modulate({ saturation: 0.7, brightness: 0.9 }).jpeg({ quality: 80, mozjpeg: true }).toFile(join(PUB, "tex", "earth-day-2k.jpg"));
-  console.log("tex earth: day + night 2k");
+  const day = await fetchTo("https://assets.science.nasa.gov/content/dam/science/esd/eo/images/bmng/bmng-topography-bathymetry/october/world.topo.bathy.200410.3x5400x2700.jpg", "bluemarble_oct.jpg");
+  for (const [w, q] of [[2048, 80], [4096, 78]] as const)
+    await sharp(day).resize(w, w / 2).modulate({ saturation: 0.7, brightness: 0.9 }).jpeg({ quality: q, mozjpeg: true }).toFile(join(PUB, "tex", `earth-day-${w / 1024}k.jpg`));
+  console.log("tex earth: day 2k/4k (October) + night 2k");
 }
 
 /** Real stars ≤ mag 5.5 as a compact array: [ra(deg), dec(deg), mag, bv] × N, plus constellation lines. */

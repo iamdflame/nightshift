@@ -164,7 +164,8 @@ export function FanChart({ h, height = 420 }: { h: History; height?: number }) {
             {lastClose != null && (
               <g>
                 <line x1={m.l} x2={W - m.r} y1={y(lastClose)} y2={y(lastClose)} stroke="#7C859D" strokeDasharray="3 4" />
-                <text x={m.l + 6} y={y(lastClose) - 6} fontSize="11" fill="#A9B0C2">
+                {/* In the empty stretch between now and the bell when there's room, so it never sits on the lines. */}
+                <text x={x(h.nextAnchor) - xn > 150 ? xn + 10 : m.l + 6} y={y(lastClose) + 15} fontSize="11" fill="#A9B0C2" stroke="#151E35" strokeWidth="3" paintOrder="stroke">
                   Last close {usd(lastClose)}
                 </text>
               </g>
