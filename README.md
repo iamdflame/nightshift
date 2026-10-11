@@ -1,33 +1,91 @@
-# Nightshift
+# Nightshift: the price of a stock when Wall Street is asleep
 
-**The price of a stock when Wall Street is asleep.**
+Nightshift is a 24/7 price oracle for tokenized stocks on BNB Chain, run by AI agents that get paid only when the opening bell proves them right.
 
-Nightshift is a network of AI agents that prices tokenized US stocks on BNB Chain around the clock. Every round, each agent commits its forecast of the next market open on-chain. Reality scores them at the bell, they get paid only when they're right, and their consensus becomes a 24/7 oracle. That oracle powers what tokenized stocks can't do without it: trading that never overpays, borrowing against stocks on a Sunday, and AMM pools that can't be robbed at the open.
+- Each agent commits its forecast of every bStock's next US open on-chain before the market opens.
+- The official open scores them, and ERC-8183 escrow pays only the ones that beat a stale oracle.
+- Their consensus, a fair value plus a calibrated 90% band, is what lending and trading contracts read at 3 a.m. on a Sunday.
 
-> Built for **BNB Hack: Tokenized Stocks Edition**. Centered on **bStocks** (91 tokens), with **Ondo** and **xStocks** priced and compared per real share. BSC mainnet.
+> Built for **BNB Hack: Tokenized Stocks Edition**. **bStocks** are central (all 91 on BSC). **Ondo** and **xStocks** are priced per real share. BSC mainnet.
+
+### Three facts, if you read nothing else
+
+1. **It's live on BSC mainnet.** Forecast commitments, oracle reports and a loan against NVIDIA taken on a Sunday are on-chain. Every contract and transaction is linked from **[docs/LIVE.md](docs/LIVE.md)**, which is generated from the chain records.
+2. **It's measured, not claimed.** In a strict out-of-sample backtest (70 gaps, 60,794 forecasts) the forecast error is **22% lower than a stale oracle's**. On live opens since Oct 8, scored automatically, it is **49% lower (Oct 8)** and **31% lower (Oct 9)**.
+3. **It's built on the sponsor stack end to end:**
+   - 7 Binance Web3 API modules, through our own 65-endpoint SDK;
+   - a Wallet Skill for the Agentic Wallet (`baw` orders, x402);
+   - an Agent Studio seller agent;
+   - ERC-8004 identities and ERC-8183 jobs on BNB's own contracts.
+
+### Verify it yourself in 3 minutes (no wallet, no signup)
+
+1. Open **[docs/LIVE.md](docs/LIVE.md)** and click any **ForecastBook** commit. Its block time is before the 13:30 UTC open it forecasts.
+2. Ask the API for one forecast and its Merkle proof: `GET /v1/rounds/{round}/proof/nfv/{token}`. Hash the leaf and check it against the root committed in step 1:
+   ```
+   keccak256(bytes.concat(keccak256(abi.encode(round, token, medianE8, lowerE8, upperE8, anchorTime))))
+   ```
+3. After the open, `GET /v1/scoreboard` shows the same forecasts scored against the official open.
 
 ---
 
 ## The problem
 
-- **The real market sleeps most of the week.** Tokenized stocks trade 24/7, but deep price discovery only happens in the US regular session: 32.5 of 168 hours, or **19% of the week**. From Friday 20:00 to Sunday 20:00 New York time (**48 hours**, plus holidays and halts) there is **no reference price at all**.
-- **Today's oracles either go stale or echo noise.** They report Friday's close, or a thin weekend print. That's why Venus accepts NVDAB/TSLAB/SPCXB as collateral yet keeps **borrow caps at zero** and a $200k weekend liquidation buffer.
-- **"Which NVIDIA?"** The same company is NVDAB (bStocks), NVDAon (Ondo) and NVDAx (xStocks). Binance's own Agentic Wallet skill answers a bare "buy NVIDIA" by *asking the user which provider*. On Oct 8 premarket, the wrong choice cost **+83 bps per real share** (NVDAon $237.18 vs NVDAB $235.21).
+- **The stock market sets a real price only 19% of the week.**
+  - Tokenized stocks trade 24/7, but deep price discovery happens in the US regular session: 32.5 of 168 hours.
+  - From Friday 20:00 to Sunday 20:00 New York time (48 hours, plus holidays and halts) there is no reference price at all.
+  - That is when people trade: bStocks launched on BNB Chain on June 11, 2026, and **62% of their July volume happened while US markets were dark** ([Crypto Briefing, Aug 26, 2026](https://cryptobriefing.com/binance-bstocks-volume-us-market-closures/)).
+- **Oracles stop exactly then.** Chainlink's tokenized-equity docs: *"These feeds do not publish updates, including heartbeat updates, while markets are closed"* ([docs](https://docs.chain.link/data-feeds/tokenized-equity-feeds)). A lender sees Friday's close all weekend and can't size a loan against Monday's gap.
+- **So lending stays switched off.** Venus listed NVDAB, TSLAB and SPCXB as collateral with *"Borrow cap: 0 (borrowing disabled)"* ([proposal, June 2026](https://community.venus.io/t/bnb-chain-list-vtslab-vnvdab-and-vspcxb-markets-in-the-venus-core-pool/5832)). Our year of weekend gaps says solvency isn't the constraint ([report](docs/venus-weekend-risk.md)); a price for the dark hours is.
+
+## How it works
+
+```mermaid
+flowchart LR
+  subgraph Sources["24/7 sources"]
+    BS[Binance spot books: 91 bStocks]
+    DEX[BSC pools: bStocks / Ondo / xStocks]
+    W3[Binance Web3 API: RWA, Market, Trading quotes]
+    REF[Official open/close]
+  end
+  Sources --> TAPE[(Tape: every observation)]
+  TAPE --> F1[Forecaster: anchor] & F2[Forecaster: echo] & F3[Forecaster: NFV]
+  F1 & F2 & F3 -->|Merkle root, before the open| FB[ForecastBook]
+  F1 & F2 & F3 --> AGG[Reputation-weighted consensus]
+  AGG -->|fair value + 90% band| OR[NightshiftOracle]
+  OPEN[Official open] --> SC[Scorer: CRPS]
+  SC -->|pay only if it beat the stale oracle| J[ERC-8183 jobs on BNB's commerce contracts]
+  OR --> CR[NightshiftCredit: Sunday loans] & VA[Venus adapter + AggregatorV3 feeds] & HK[PancakeSwap Infinity hook]
+  AGG --> API[API + MCP + x402] --> SK[Agentic Wallet skill]
+```
+
+1. **Forecast.** Every 30 minutes, three forecasters (each with an ERC-8004 identity) predict every bStock's next official open as a distribution, not a point:
+   - `anchor`: today's oracle, the last close;
+   - `echo`: the live on-chain price;
+   - `nfv`: our model.
+2. **Commit.** Each forecaster commits a Merkle root of its forecasts to `ForecastBook` before the open. Nobody, including us, can change a forecast after the fact.
+3. **Score and pay.** At the open, the Scorer grades every forecast with CRPS, a standard score for probabilistic forecasts. ERC-8183 jobs on BNB's commerce, router and policy contracts escrow the forecasters' pay in U:
+   - a forecaster is paid only if it beat the stale oracle on that open;
+   - otherwise the Scorer disputes, with the score report's hash as evidence.
+4. **Publish.** The reputation-weighted consensus goes to `NightshiftOracle` as a fair value plus a 90% band for the next open.
+   - Tokens that contracts consume are posted every round.
+   - The rest are posted on a 25 bps move or a 6-hour heartbeat, so gas lasts through judging.
+5. **Use.** Contracts read the band, not just the price.
 
 ## What we built
 
-| Layer | What it is |
+| Piece | What it is |
 |---|---|
-| **NFV, the science** | A dark-hours fair-value model ([whitepaper](docs/whitepaper.md)). **Information provenance:** a token's move since the close is split into post-market, dark and restart segments, and each segment's trust is learned. **Split-conformal 90% bands** for the next open. Backtested strictly out-of-sample on every gap since bStocks listed. |
-| **The Night Shift, the agents** | Forecasters (`anchor`, `echo`, `nfv`, plus open slots), each with an **ERC-8004** identity. Every 30 minutes each one commits a Merkle root of its forecasts to **`ForecastBook`** before the open. The Scorer grades every forecast against the official open with CRPS (a score for probabilistic forecasts). Reputation-weighted consensus is posted to **`NightshiftOracle`**. |
-| **Pay-for-accuracy** | **ERC-8183** jobs on BNB's live commerce, router and policy contracts. A forecaster is paid in U only if it beat the stale oracle; otherwise the Scorer disputes, with the score report's hash as evidence. |
-| **Which NVIDIA?** | `/v1/which/NVDA` plus an MCP tool and a **Wallet Skill** for the Binance Agentic Wallet. It compares every issuer per real share across the Binance spot book and BSC pools, checks against fair value, then trades via `baw`: market inside the band, limit at fair value outside it. |
-| **Credit** | `NightshiftCredit`: borrow USDT against bStocks 24/7. Collateral is valued at the **5th-percentile next-open price**, so a Sunday loan survives Monday's gap. Ships with a Venus `OracleInterface` adapter and Chainlink `AggregatorV3` feeds. |
-| **Pools** | A PancakeSwap Infinity hook with dynamic LP fees from the oracle. Informed reopen flow pays for the gap it captures. **Measured on a BSC mainnet fork** (pool $230, fair value $236, ~$302k position): LPs lose **$70.63** with Nightshift vs **$244.92** (flat 0.05%) and **$207.81** (flat 0.25%), a **71% / 66% cut** in reopen losses ([hook.md](docs/hook.md)). |
-| **API** | REST + SSE + OpenAPI + MCP: fair value, which, radar, identities, rounds with Merkle proofs, receipts, live scoreboard, study, health. |
-| **Agent Studio seller** | `agents/NightshiftOracle`, scaffolded with `bag init` (BSC mainnet; A2A + MCP + x402; ERC-8183 + B402 rails). It sells deterministic fair-value reports to other agents. Negotiation verified: a signed **0.01 U** quote with `uma_oov3` evaluation. |
-| **Binance Web3 SDK** | `@nightshift/sdk` covers all **65 REST endpoints**, with HMAC, clock-skew correction, per-endpoint rate limits, circuit breakers, never-retry-writes, doc-drift telemetry to `dx_calls`, record/replay and a b402 merchant kit. It found **40 documentation issues** ([README](packages/sdk/README.md)). |
-| **Receipts** | `/v1/receipts/{tx}` turns any BSC tokenized-stock trade into cost per real share vs the fair value at that moment, rebuilt from on-chain logs. A real $2,451 NVDAB sale "sold 11.1 bps below fair value". |
+| **NFV model** | Dark-hours fair value ([whitepaper](docs/whitepaper.md)). **Information provenance**: a token's move since the close is split into post-market, dark and restart segments, and each segment's trust is learned. Split-conformal 90% bands. Backtested strictly out-of-sample on every gap since bStocks listed. |
+| **Pay-for-accuracy network** | `ForecastBook` commit-reveal, CRPS Scorer, ERC-8183 job lifecycle (open → submit the last on-chain root → judge → settle) run by the runner with no human in the loop. |
+| **NightshiftOracle** | Signed fair value + band + session + flags per token; staleness and corporate-action flags; Chainlink `AggregatorV3` feeds per token. |
+| **NightshiftCredit** | Borrow USDT against bStocks 24/7. Collateral counts at the **lower edge of the band** for the next open, so a Sunday loan is sized for Monday's gap. Ships a Venus `OracleInterface` adapter. |
+| **Infinity hook** | PancakeSwap Infinity dynamic-fee hook driven by the oracle. Informed reopen flow pays for the gap it captures. On a BSC mainnet fork (pool $230, fair value $236, ~$302k position), LPs lose **$70.63** with Nightshift vs **$244.92** at a flat 0.05% fee and **$207.81** at a flat 0.25%: **71% and 66% lower** ([hook.md](docs/hook.md)). |
+| **Wallet Skill** | `skills/nightshift` for the Binance Agentic Wallet: per-real-share prices across bStocks, Ondo and xStocks, fair-value checks, `baw` market orders inside the band and limit orders at fair value outside it, and x402 for paid data. |
+| **Receipts** | `/v1/receipts/{tx}` turns any BSC tokenized-stock trade into its cost per real share against the fair value at that moment, rebuilt from on-chain logs and hashed. A real $2,451 NVDAB sale "sold 11.1 bps below fair value". |
+| **Agent Studio seller** | `agents/NightshiftOracle` (`bag init`, BSC mainnet, A2A + MCP + x402, ERC-8183 + B402 rails) sells deterministic fair-value reports to other agents. |
+| **Binance Web3 SDK** | `packages/sdk` covers all **65 REST endpoints**, with:<br>• HMAC signing and clock-skew correction<br>• per-endpoint rate limits and circuit breakers<br>• never-retry-writes, record/replay, and a b402 merchant kit<br>• telemetry on every call<br>It found **40 documentation issues** ([README](packages/sdk/README.md)). |
+| **API** | REST + SSE + OpenAPI + MCP: fair value, rounds with Merkle proofs, scoreboard, receipts, radar, identities, health. |
 
 ## Results
 
@@ -41,54 +99,42 @@ Strict leave-one-gap-out backtest over **70 gaps / 60,794 forecasts** (Jun 11 �
 | Sunday-night restart | 169.1 | 94.2 | **94.6** (−44.0%) | 89.0% |
 | Weekday overnight | 162.6 | 112.3 | **112.0** (−31.2%) | 90.4% |
 
+**Live**, every official open scored automatically (forecasts committed in the pre-open rounds):
+
+| Open | Forecasts | Stale oracle | On-chain echo | **NFV** | NFV 90% band coverage |
+|---|---|---|---|---|---|
+| Oct 8, 2026 | 261 | 120.8 | 61.9 | **61.7** (−49%) | 96.6% |
+| Oct 9, 2026 | 3,045 | 148.6 | 103.6 | **102.9** (−31%) | 85.2% |
+
 Two findings we didn't expect:
-- **Weekend token prices are only weakly informative.** Echoing them mid-weekend can be *worse* than the stale close.
-- **Company-specific after-hours moves carry into Monday in full** (learned weight 1.19), while market-wide weekend drift is ~55% noise (weight 0.46).
+- **Weekend token prices are only weakly informative.** Echoing them mid-weekend can be worse than the stale close.
+- **Company-specific after-hours moves carry into Monday in full** (learned weight 1.19). Market-wide weekend drift is about 55% noise (weight 0.46).
 
-**Live, Oct 8 2026 open** (first reality-scored open: 261 forecasts committed in the pre-open rounds, before 13:30 UTC):
+## What's real
 
-| Forecaster | CRPS | MAE | 90% band coverage |
-|---|---|---|---|
-| Stale oracle (yesterday's close) | 120.8 bps | 177.5 bps | 92.0% |
-| On-chain echo | 61.9 bps | 77.8 bps | 92.0% |
-| **Nightshift NFV** | **61.7 bps** (−49% vs stale) | 78.3 bps | 96.6% |
+| Live on BSC mainnet | Built and tested, not live | Designed |
+|---|---|---|
+| ForecastBook commits, oracle reports, AggregatorV3 feeds, the Sunday loan, ERC-8183 jobs, 24/7 collector and scoring, Binance Web3 API feeds ([LIVE.md](docs/LIVE.md)) | Infinity hook (71 Foundry tests, 7 on a mainnet fork), Venus adapter (deployed; Venus itself doesn't read it) | Third-party forecasters joining the network; licensed reference data |
 
-Every open since is scored automatically: `/v1/scoreboard`, `/v1/results`.
+## Known limits
 
-## Architecture
-
-```mermaid
-flowchart LR
-  subgraph Sources["24/7 sources"]
-    BS[Binance spot books: 91 bStocks]
-    DEX[BSC pools: bStocks / Ondo / xStocks]
-    REF[Official open/close + sessions]
-    RWA[Binance Web3 RWA / Market / Trading APIs]
-  end
-  Sources --> TAPE[(Tape: SQLite, every observation)]
-  TAPE --> NFV[NFV v2 engine]
-  NFV --> F1[Forecaster: anchor] & F2[Forecaster: echo] & F3[Forecaster: nfv]
-  F1 & F2 & F3 -->|Merkle root before the open| FB[ForecastBook on BSC]
-  F1 & F2 & F3 --> AGG[Reputation-weighted consensus]
-  AGG -->|postReports| OR[NightshiftOracle on BSC]
-  OPEN[Official open] --> SC[Scorer: CRPS]
-  SC -->|reputation| AGG
-  SC -->|accept / dispute| J[ERC-8183 jobs: BNB commerce + router + policy]
-  OR --> CR[NightshiftCredit] & HK[Infinity hook] & VA[Venus adapter / AggregatorV3]
-  AGG --> API[API + MCP + SSE] --> SK[Wallet Skill: Agentic Wallet / baw]
-```
+- **The dark-hours point gain is modest** (−3% to −8% CRPS). The value in the dark is mostly calibrated uncertainty, which is what a lender needs.
+- **The bands undercover slightly.** That's 86.6% in the weekend-dark backtest and 85.2% on the Oct 9 open, against a 90% target. They are refit as live opens are scored.
+- **About 17 weekends of history** exist so far.
+- **Reference opens and closes come from a public source** in this build. Production would use a licensed feed.
+- **Pre-IPO tokens are excluded automatically** (SpaceX, Cerebras, Quantinuum): they have no public reference, and their tickers collide with unrelated listed securities.
 
 ## Binance Web3 + BNB stack, and how we use it
 
 | Module | Use | Unexpected use |
 |---|---|---|
-| RWA Data | registry, `tokenToShareRatio`, sessions, corporate actions | issuer-agnostic per-share pricing; corporate-action pause flags in oracle reports |
-| Market | candles, pools, trades | 4 months of candles = the backtest; pools = per-venue liquidity for *which* |
-| Trading | quotes, swaps, RFQ | quotes as 24/7 probes of executable price; RFQ windows (40367) as a session signal |
-| Transaction | simulate, broadcast | execution proofs for receipts |
-| b402 | pay-per-query fair value | the user's Agentic Wallet pays an oracle |
-| Agentic Wallet + Skills | `baw` market/limit orders, x402 payment | a skill that turns "buy NVIDIA" into the cheapest real share at fair value |
-| Agent Studio / `@bnbagent/sdk` | ERC-8004 identities, ERC-8183 jobs, keystores | pay-for-accuracy forecasting market with an independent scorer |
+| RWA Data | registry, `tokenToShareRatio`, market status, corporate actions | issuer-agnostic per-share pricing; corporate-action pause flags inside oracle reports |
+| Market | candles, pools, trades | 4 months of candles = the backtest; pools = per-venue liquidity |
+| Trading | quotes, swaps, RFQ | a $100 / $1k / $10k quote ladder as a 24/7 probe of executable price; RFQ refusals as a session signal |
+| Transaction | broadcast with MEV protection | execution proofs for receipts |
+| b402 | pay-per-query fair value | an Agentic Wallet pays an oracle |
+| Agentic Wallet + Skills | `baw` orders, x402 payment | a skill that turns "buy NVIDIA" into the cheapest real share at fair value |
+| Agent Studio / `@bnbagent/sdk` | ERC-8004 identities, ERC-8183 jobs | a pay-for-accuracy forecasting market with an independent scorer |
 
 ## Quick start
 
@@ -96,23 +142,32 @@ flowchart LR
 pnpm install
 pnpm exec tsx packages/tape/src/backfill.ts && pnpm collect     # tape: history + 24/7 collector
 pnpm exec tsx packages/network/src/runner.ts                   # the Night Shift: rounds, scoring, publishing
-pnpm exec tsx packages/api/src/server.ts                       # API on :8787  (try /v1/which/NVDA)
+pnpm exec tsx packages/api/src/server.ts                       # API on :8787
 ```
 
-Reproduce the science: `pnpm exec tsx packages/nfv/src/study-v2.ts`.
+- Reproduce the science: `pnpm exec tsx packages/nfv/src/study-v2.ts`.
+- Regenerate the live proof page: `pnpm exec tsx scripts/live-proof.ts`.
+- Hosting: one Railway service runs everything (`railway.json`, `deploy/railway/`).
 
 Tests:
-- `pnpm test`: 131 TypeScript tests (calendar, CRPS closed forms vs numerical integration, provenance segment bounds incl. DST/holidays, Merkle commitments, receipts, plus the SDK's 110).
+- `pnpm test`: TypeScript tests (calendar, CRPS closed forms vs numerical integration, provenance segment bounds incl. DST and holidays, Merkle commitments, receipts, oracle posting policy, plus the SDK's 110).
 - `forge test` in `contracts-hooks/`: 71 tests, 7 of them on a BSC mainnet fork against PancakeSwap's live Infinity contracts.
 - `forge test` in `contracts/`: oracle, ForecastBook, credit, with fuzz, invariant and fork tests.
 
-## Known limits
-
-- The dark-hours point gain is real but modest (−3% to −8% CRPS). The value in the dark is mostly **calibrated uncertainty**, which is what a lender needs.
-- About 17 weekends of history so far. The conformal bands undercover slightly in the weekend dark state (86.6% vs 90%), and are refit as live opens are scored.
-- Reference opens and closes come from a public source in this build; production would use a licensed feed.
-- Pre-IPO tokens (e.g. SpaceX) have no public reference and are excluded automatically: their ticker collides with unrelated listed securities.
-
 ## Repo
 
-`packages/core` market calendar · `packages/feeds` public sources · `packages/tape` collector · `packages/nfv` model + study + live engine · `packages/network` rounds, Merkle, scorer, chain (ERC-8004/8183) · `packages/api` REST/SSE/MCP · `packages/sdk` Binance Web3 client · `contracts/` oracle, ForecastBook, credit · `contracts-hooks/` Infinity hook · `skills/nightshift` Wallet Skill · `docs/` whitepaper + specs.
+| Path | What's in it |
+|---|---|
+| `packages/core` | market calendar |
+| `packages/feeds` | public sources |
+| `packages/tape` | 24/7 collector |
+| `packages/nfv` | model, study and live engine |
+| `packages/network` | rounds, Merkle, scorer, chain (ERC-8004/8183) |
+| `packages/api` | REST, SSE and MCP |
+| `packages/sdk` | Binance Web3 client |
+| `packages/trade` | executor and receipts |
+| `contracts/` | oracle, ForecastBook, credit |
+| `contracts-hooks/` | Infinity hook |
+| `agents/NightshiftOracle` | Agent Studio seller |
+| `skills/nightshift` | Wallet Skill |
+| `docs/` | whitepaper, specs, live proof |
