@@ -2,7 +2,8 @@
 name: nightshift
 description: "Trade tokenized US stocks on BNB Chain without overpaying — at any hour. Use with the Binance Agentic Wallet when the user wants to buy, sell or price a US stock token (bStocks …B, Ondo …on, xStocks …x), especially by bare ticker ('buy NVIDIA'), or outside US market hours. Resolves which issuer's token is the cheapest real share, checks it against Nightshift's 24/7 fair value and next-open risk band, then executes with baw (market order inside the band, limit order at fair value outside it)."
 metadata:
-  version: "0.1.0"
+  version: "0.2.0"
+  requires: "binance-agentic-wallet skill 1.12.0+ (baw CLI 1.10.0+)"
   author: "Nightshift"
 license: MIT
 ---
@@ -20,9 +21,9 @@ and security checks; this skill decides *what* to trade and *at what price*.
 
 ## Data source
 
-Nightshift API base URL: `$NIGHTSHIFT_URL` (default `https://nightshift.onrender.com` — replace with
-the deployment you use). Also available as an MCP server at `$NIGHTSHIFT_URL/mcp` with tools
-`fair_value`, `which`, `radar`, `scoreboard`, `verify_forecast`, `study`.
+Nightshift API base URL: `$NIGHTSHIFT_URL` (the public deployment is linked at the top of
+https://github.com/iamdflame/nightshift). Also available as an MCP server at `$NIGHTSHIFT_URL/mcp`
+with tools `fair_value`, `which`, `radar`, `scoreboard`, `verify_forecast`, `study`.
 
 | Need | Call |
 |---|---|
@@ -30,9 +31,20 @@ the deployment you use). Also available as an MCP server at `$NIGHTSHIFT_URL/mcp
 | Fair value + band for a token | `GET $NIGHTSHIFT_URL/v1/fair-value/{SYMBOL}` |
 | Market state (session, next open) | `GET $NIGHTSHIFT_URL/v1/status` |
 
-If an endpoint answers `402 Payment Required` (premium tier), pay it with the Agentic Wallet:
-`baw x402-payment preview --json` then, after the user confirms, `baw x402-payment sign --json`,
-and retry the request with the signed payment.
+| Full report: forecasters, Merkle proof, on-chain report (paid, x402) | `GET $NIGHTSHIFT_URL/x402/fair-value/{SYMBOL}` |
+| Price and accepted assets of the paid endpoint | `GET $NIGHTSHIFT_URL/x402/price` |
+| Receipt for any BSC trade | `GET $NIGHTSHIFT_URL/v1/receipts/{txHash}` |
+
+## Paying for the full report (x402 V2, settled by Binance B402)
+
+1. `GET /x402/fair-value/{SYMBOL}` → `402` with a `PAYMENT-REQUIRED` header (base64 `PaymentRequired`).
+2. `baw x402-payment preview --paymentRequirements <PAYMENT-REQUIRED header value> --json`. Show the
+   user the options (asset, amount, USD value). Only `READY_TO_SIGN` options can be signed.
+3. After the user confirms: `baw x402-payment sign --paymentId <paymentId> --selectedIndex <index> --json`.
+   If `approveTxHash` is set (Permit2, gas sponsored on BSC), wait for it to confirm first.
+4. Replay the same GET with header `PAYMENT-SIGNATURE: <paymentHeaderValue>`. The response's
+   `PAYMENT-RESPONSE` header (base64 JSON) carries the settlement `txHash`. Each signature is single-use.
+5. The default price is 0.01 USD, inside the Agentic Wallet's x402 limit of 20 USD per day.
 
 ## Flow: "buy $X of <stock>"
 
@@ -55,9 +67,10 @@ and retry the request with the signed payment.
 4. **Execute** with the `binance-agentic-wallet` skill's market-order or limit-order flow, after its
    preflight and security checks and the user's explicit confirmation. Pass the full contract
    address. Payment tokens: USDT, USDC, U, USD1 or BNB.
-5. **Receipt.** After the fill (`baw market-order list --json` / `baw wallet tx-history --json`), report:
-   tokens received, average price per token, price per real share (price ÷ `sharesPerToken`),
-   and `(fill − fairValue)/fairValue` in bps — positive = paid above fair value.
+5. **Receipt.** After the fill, take the transaction hash from `baw market-order list --json` and call
+   `GET $NIGHTSHIFT_URL/v1/receipts/{txHash}`. Nightshift rebuilds the trade from the chain's Transfer
+   logs and returns tokens received, price per token and per real share, the fair value at that moment,
+   the verdict (for example "bought 3.2 bps below fair value") and a `receiptHash` anyone can re-derive.
 6. **Hygiene.** If an approval was created for this trade, offer `baw approvals revoke --json`.
 
 ## Flow: "what is <stock> worth right now?"
