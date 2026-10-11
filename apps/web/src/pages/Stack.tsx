@@ -50,7 +50,7 @@ function Status({ calls24h, callsAll }: { calls24h: number; callsAll: number }) 
 function CopyBlock({ code, label }: { code: string; label: string }) {
   const [done, setDone] = useState(false);
   return (
-    <div className="relative">
+    <div className="relative min-w-0">
       <pre className="overflow-x-auto rounded-[10px] bg-night-0 p-4 pr-12 text-[12.5px] leading-relaxed text-moon-1 hairline" tabIndex={0} aria-label={label}>
         <code className="mono">{code}</code>
       </pre>
