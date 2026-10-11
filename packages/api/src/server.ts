@@ -3,6 +3,12 @@
  *
  *   pnpm exec tsx packages/api/src/server.ts      (PORT, default 8787)
  */
+import { timingSafeEqual } from "node:crypto";
+import { createReadStream, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { DatabaseSync } from "node:sqlite";
+import { createGzip } from "node:zlib";
 import cors from "@fastify/cors";
 import rateLimit from "@fastify/rate-limit";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
@@ -10,7 +16,7 @@ import Fastify from "fastify";
 import { buildReceipt } from "@nightshift/trade";
 import { buildMcpServer } from "./mcp.ts";
 import { openapi } from "./openapi.ts";
-import { loadEnv } from "@nightshift/tape";
+import { DEFAULT_DB_PATH, loadEnv } from "@nightshift/tape";
 import { Queries } from "./queries.ts";
 import { registerX402 } from "./x402.ts";
 
@@ -99,5 +105,23 @@ app.post("/mcp", async (req, reply) => {
   await transport.handleRequest(req.raw, reply.raw, req.body);
 });
 app.get("/mcp", async (_req, reply) => reply.code(405).send({ error: "Use POST for MCP (Streamable HTTP, stateless)" }));
+
+// Operator-only: a consistent gzip snapshot of the database (the proof page is generated from it). Needs the
+// same secret as the bootstrap import; absent token → the route does not exist.
+const EXPORT_TOKEN = process.env.NIGHTSHIFT_IMPORT_TOKEN;
+if (EXPORT_TOKEN) {
+  app.get("/_export", { config: { rateLimit: { max: 3, timeWindow: "1 minute" } } }, async (req, reply) => {
+    const given = Buffer.from(String(req.headers.authorization ?? ""));
+    const want = Buffer.from(`Bearer ${EXPORT_TOKEN}`);
+    if (given.length !== want.length || !timingSafeEqual(given, want)) return reply.code(404).send({ error: "not found" });
+    const snap = join(tmpdir(), `nightshift-export-${Date.now()}.sqlite`);
+    const db = new DatabaseSync(DEFAULT_DB_PATH, { readOnly: true });
+    db.exec(`VACUUM INTO '${snap.replace(/'/g, "''")}'`);
+    db.close();
+    const stream = createReadStream(snap).pipe(createGzip({ level: 6 }));
+    stream.on("close", () => rmSync(snap, { force: true }));
+    return reply.header("content-type", "application/gzip").send(stream);
+  });
+}
 
 await app.listen({ port: PORT, host: "0.0.0.0" });

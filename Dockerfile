@@ -7,4 +7,5 @@ COPY packages ./packages
 RUN pnpm install --frozen-lockfile
 COPY . .
 ENV NODE_ENV=production NIGHTSHIFT_DB=/app/data/tape.sqlite
-CMD ["pnpm", "exec", "tsx", "packages/api/src/server.ts"]
+# One supervised container (collector, runner, API on $PORT); docker-compose overrides the command per service.
+CMD ["node", "--import", "tsx", "deploy/railway/start.ts"]
