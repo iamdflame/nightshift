@@ -366,7 +366,7 @@ export class Queries {
   onchain() {
     const read = <T>(p: string): T | null => (existsSync(p) ? (JSON.parse(readFileSync(p, "utf8")) as T) : null);
     const dep = read<Record<string, unknown> & { feeds?: Record<string, string>; block?: number }>("deployments/56.json");
-    const agentsFile = read<Record<string, { agentId: number | null; address: string; tx: string }>>("deployments/agents.json") ?? {};
+    const agentsFile = read<Record<string, { agentId: number | null; address: string; tx: string; registeredAt?: string }>>("deployments/agents.json") ?? {};
     const names: Record<string, string> = { treasury: "Nightshift Scorer", anchor: "Forecaster: Anchor", echo: "Forecaster: Echo", nfv: "Forecaster: NFV", executor: "Nightshift Trade" };
     const sym = new Map((this.db.prepare(`SELECT lower(address) a, symbol FROM instruments WHERE chain_id = '56'`).all() as { a: string; symbol: string }[]).map((r) => [r.a, r.symbol]));
     const roles: Record<string, string> = {
@@ -389,7 +389,7 @@ export class Queries {
       deployBlock: (dep?.block as number | undefined) ?? null,
       contracts: dep ? Object.entries(roles).filter(([k]) => typeof dep[k] === "string").map(([k, role]) => ({ name: k, address: dep[k] as string, role })) : [],
       feeds: Object.entries(dep?.feeds ?? {}).map(([token, feed]) => ({ token, symbol: sym.get(token.toLowerCase()) ?? token, feed })),
-      agents: Object.entries(agentsFile).map(([role, a]) => ({ role, name: names[role] ?? role, agentId: a.agentId, address: a.address, tx: a.tx })),
+      agents: Object.entries(agentsFile).map(([role, a]) => ({ role, name: names[role] ?? role, agentId: a.agentId, address: a.address, tx: a.tx, registeredAt: a.registeredAt ?? null })),
       commitments: (
         this.db
           // lastTx is the commit tx of the group's newest round (MAX(tx_hash) would be the lexicographically largest hash).

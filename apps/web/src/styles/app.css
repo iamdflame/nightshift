@@ -189,3 +189,8 @@ p { text-wrap: pretty; }
 @media (max-width: 639px) {
   td[data-label]::before { content: attr(data-label); display: block; margin-bottom: 2px; font-family: var(--font-sans); font-size: 12px; letter-spacing: 0; color: var(--color-moon-3); }
 }
+
+/* Spotlight that follows a fine pointer across instrument cards. */
+.ns-spot::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 300ms var(--ease-std);
+  background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%), rgb(244 241 232 / 0.06), transparent 70%); }
+@media (hover: hover) and (pointer: fine) { .ns-spot:hover::before { opacity: 1; } }

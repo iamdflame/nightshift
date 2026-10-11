@@ -181,7 +181,7 @@ export interface OnChain {
   chainId: 56;
   contracts: { name: string; address: string; role: string }[];
   feeds: { token: string; symbol: string; feed: string }[];
-  agents: { role: string; name: string; agentId: number | null; address: string; tx: string }[];
+  agents: { role: string; name: string; agentId: number | null; address: string; tx: string; registeredAt: string | null }[];
   commitments: { anchorTime: number; forecaster: string; rounds: number; firstRound: number; lastRound: number; lastTx: string | null }[];
   recentCommits: { round: number; t: number; forecaster: string; tx: string; anchorTime: number }[];
   oracle: { reports: number; txs: number; latest: { symbol: string; round: number; fairValue: number; lower: number; upper: number; computedAt: number; tx: string }[] };
