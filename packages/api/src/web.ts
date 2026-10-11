@@ -51,7 +51,8 @@ export async function registerWeb(app: FastifyInstance, opts: { dist?: string | 
   }
 
   // Exact routes for the files in the build (wildcard: false): hashed assets are immutable for a year,
-  // index.html is always revalidated, everything else in public/ (og.png, favicons) caches for an hour.
+  // index.html is always revalidated, the large public/ media (textures, photos, star catalog) caches
+  // for a week, and the rest of public/ (og.png, favicons) for an hour.
   await app.register(fastifyStatic, {
     root: dist,
     prefix: "/",
@@ -62,7 +63,16 @@ export async function registerWeb(app: FastifyInstance, opts: { dist?: string | 
     globIgnore: ["v1/**", "x402/**", "mcp", "mcp/**", "_export", "openapi.json"],
     setHeaders: (reply, file) => {
       const rel = relative(dist, file).split(sep).join("/");
-      reply.header("cache-control", rel.startsWith("assets/") ? "public, max-age=31536000, immutable" : rel === "index.html" ? "no-cache" : "public, max-age=3600");
+      reply.header(
+        "cache-control",
+        rel.startsWith("assets/")
+          ? "public, max-age=31536000, immutable"
+          : rel === "index.html"
+            ? "no-cache"
+            : /^(tex|img|data)\//.test(rel)
+              ? "public, max-age=604800, stale-while-revalidate=86400"
+              : "public, max-age=3600",
+      );
     },
   });
 

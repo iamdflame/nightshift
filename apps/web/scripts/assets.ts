@@ -66,7 +66,7 @@ async function textures() {
       out[i + 1] = Math.round(((-dy / n) * 0.5 + 0.5) * 255);
       out[i + 2] = Math.round(((1 / n) * 0.5 + 0.5) * 255);
     }
-  await sharp(out, { raw: { width: W, height: H, channels: 3 } }).png({ compressionLevel: 9 }).toFile(join(PUB, "tex", "moon-normal-1k.png"));
+  await sharp(out, { raw: { width: W, height: H, channels: 3 } }).webp({ quality: 92 }).toFile(join(PUB, "tex", "moon-normal-1k.webp"));
   console.log("tex moon: color 2k/1k + normal 1k");
 
   // Earth: Black Marble 2016 (night lights) + Blue Marble NG October (day, the season the site runs in), public domain.

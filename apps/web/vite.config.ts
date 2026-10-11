@@ -1,12 +1,27 @@
 import { fileURLToPath } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 
 const r = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 
+/** Preload the hero's two latin fonts (headline, intro) so the static first paint doesn't reflow on swap. */
+function preloadFonts(patterns: RegExp[]): Plugin {
+  return {
+    name: "ns-preload-fonts",
+    apply: "build",
+    transformIndexHtml: {
+      order: "post",
+      handler: (_html, ctx) =>
+        Object.keys(ctx.bundle ?? {})
+          .filter((f) => f.endsWith(".woff2") && patterns.some((re) => re.test(f)))
+          .map((f) => ({ tag: "link", attrs: { rel: "preload", as: "font", type: "font/woff2", href: `/${f}`, crossorigin: true }, injectTo: "head" as const })),
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), preloadFonts([/newsreader-latin-opsz-normal-/, /instrument-sans-latin-standard-normal-/])],
   resolve: {
     alias: {
       "@": r("./src"),
@@ -24,14 +39,7 @@ export default defineConfig({
     target: "es2022",
     sourcemap: false,
     chunkSizeWarningLimit: 1400,
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          three: ["three", "@react-three/fiber", "@react-three/drei"],
-          gsap: ["gsap", "@gsap/react", "lenis"],
-          chain: ["viem"],
-        },
-      },
-    },
+    // No manualChunks: grouping three/gsap/viem by name pulled React into the three chunk and made every page
+    // preload it. Rollup's own split keeps them behind the lazy imports that use them.
   },
 });

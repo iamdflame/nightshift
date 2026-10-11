@@ -3,6 +3,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ReactLenis, type LenisRef, useLenis } from "lenis/react";
 import { useReducedMotion } from "motion/react";
 import { Suspense, lazy, useEffect, useRef } from "react";
+import { useScrollIntent } from "@/hooks/useScrollIntent";
 import { Hero } from "@/sections/hero/Hero";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -23,6 +24,8 @@ function LenisSync() {
 export default function Landing() {
   const reduce = useReducedMotion();
   const lenis = useRef<LenisRef>(null);
+  // The story (its WebGL Earth and textures included) mounts as soon as the reader heads down the page.
+  const story = useScrollIntent() || Boolean(reduce);
   useEffect(() => {
     if (reduce) return;
     const update = (t: number) => lenis.current?.lenis?.raf(t * 1000);
@@ -36,14 +39,18 @@ export default function Landing() {
       <title>Nightshift: the price of a stock when Wall Street is asleep</title>
       <Hero />
       <div id="story">
-        <Suspense fallback={<div className="h-[100svh]" />}>
-          <DarkWeekend />
-          <HowItWorks />
-          <SundayLoan />
-          <RealityScores />
-          <AnyAgent />
-          <VerifyCta />
-        </Suspense>
+        {story ? (
+          <Suspense fallback={<div className="h-[100svh]" />}>
+            <DarkWeekend />
+            <HowItWorks />
+            <SundayLoan />
+            <RealityScores />
+            <AnyAgent />
+            <VerifyCta />
+          </Suspense>
+        ) : (
+          <div className="h-[100svh]" />
+        )}
       </div>
     </>
   );

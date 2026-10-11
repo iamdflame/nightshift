@@ -3,13 +3,14 @@ import gsap from "gsap";
 import { SplitText } from "gsap/SplitText";
 import { motion, useReducedMotion } from "motion/react";
 import { ArrowRight } from "lucide-react";
-import { Suspense, lazy, useMemo, useRef } from "react";
+import { Suspense, lazy, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import { nextRegularOpen, sessionAt } from "@ns/calendar";
 import { Countdown } from "@/components/ui/Countdown";
 import { HashChip } from "@/components/ui/HashChip";
 import { Photo } from "@/components/ui/Photo";
 import { SlidingNumber } from "@/components/ui/SlidingNumber";
+import { useAfterLoad } from "@/hooks/useAfterLoad";
 import { useNow } from "@/hooks/useNow";
 import { SESSION_LABEL, et, usd } from "@/lib/format";
 import { ease } from "@/lib/motion";
@@ -18,7 +19,7 @@ import { useFairValue, useHistory, useOnchain } from "@/lib/queries";
 gsap.registerPlugin(SplitText, useGSAP);
 
 const NightSky = lazy(() => import("@/scene/NightSky"));
-const MoonPhaseLabel = lazy(() => import("@/scene/NightSky").then((m) => ({ default: m.MoonPhaseLabel })));
+const MoonPhaseLabel = lazy(() => import("@/scene/moon").then((m) => ({ default: m.MoonPhaseLabel })));
 
 /** Mini fan: the token's real hourly price (moonlight) against the consensus band aimed at the next open (amber). */
 function MiniFan({ symbol }: { symbol: string }) {
@@ -116,10 +117,22 @@ function LiveCard() {
   );
 }
 
+/** True once: the visit that opened on index.html's static hero, which has already been read. */
+function takeShell() {
+  const w = window as { __nsShell?: boolean };
+  const v = Boolean(w.__nsShell);
+  queueMicrotask(() => delete w.__nsShell);
+  return v;
+}
+
 export function Hero() {
   const root = useRef<HTMLElement>(null);
-  const reduce = useReducedMotion();
+  const [fromShell] = useState(takeShell);
+  const reduceMotion = Boolean(useReducedMotion());
+  // Text that was already on screen (static copy) stays still; the sky still fades in unless motion is reduced.
+  const reduce = reduceMotion || fromShell;
   const { data: oc } = useOnchain();
+  const sky = useAfterLoad();
   const events = useMemo(() => (oc?.recentCommits ?? []).map((c) => ({ tx: c.tx, forecaster: c.forecaster as "anchor" | "echo" | "nfv", t: c.t })), [oc]);
 
   useGSAP(
@@ -145,9 +158,13 @@ export function Hero() {
         <div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_70%_0%,transparent,var(--color-night-0)_75%)]" />
       </div>
       <div className="absolute inset-0 -z-10" aria-hidden>
-        <Suspense fallback={null}>
-          <NightSky events={events} />
-        </Suspense>
+        {sky && (
+          <Suspense fallback={null}>
+            <motion.div className="h-full w-full" initial={reduceMotion ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1.4, ease: ease.out }}>
+              <NightSky events={events} />
+            </motion.div>
+          </Suspense>
+        )}
       </div>
       <div className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-[45%] bg-gradient-to-t from-night-0 via-night-0/70 to-transparent" />
 
@@ -157,15 +174,15 @@ export function Hero() {
             The price of a stock when Wall Street is asleep.
           </h1>
           <motion.p
-            initial={{ opacity: 0, y: 12, filter: "blur(4px)" }}
-            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-            transition={{ duration: 0.8, ease: ease.out, delay: 0.9 }}
+            initial={reduce ? false : { y: 10 }}
+            animate={{ y: 0 }}
+            transition={{ duration: 0.9, ease: ease.out, delay: 0.5 }}
             className="mt-7 max-w-[52ch] text-[17px] leading-relaxed text-moon-2 sm:text-[18px]"
           >
             Nightshift is a 24/7 price oracle for tokenized stocks on BNB Chain. AI agents seal their forecast of every stock's next open on-chain before the bell, reality scores them,
             and contracts read their consensus at 3 a.m. on a Sunday.
           </motion.p>
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, delay: 1.2 }} className="mt-9 flex flex-wrap items-center gap-3">
+          <motion.div initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, delay: 1.2 }} className="mt-9 flex flex-wrap items-center gap-3">
             <a href="#story" className="pressable ns-shimmer inline-flex items-center gap-2 rounded-md bg-sodium px-5 py-3 font-medium text-night-0">
               Enter the night shift <ArrowRight size={16} strokeWidth={1.75} />
             </a>

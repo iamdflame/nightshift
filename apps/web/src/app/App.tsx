@@ -3,7 +3,12 @@ import { Route, Routes } from "react-router";
 import { Layout } from "@/components/shell/Layout";
 import { PageLoader } from "@/components/ui/PageLoader";
 
-const Landing = lazy(() => import("@/pages/Landing"));
+const loadLanding = () => import("@/pages/Landing");
+let landing: Awaited<ReturnType<typeof loadLanding>> | null = null;
+/** main.tsx awaits this on "/" so React's first commit is the hero itself, replacing index.html's static copy. */
+export const preloadLanding = () => loadLanding().then((m) => (landing = m));
+const LandingLazy = lazy(loadLanding);
+const Landing = () => (landing ? <landing.default /> : <LandingLazy />);
 const Radar = lazy(() => import("@/pages/Radar"));
 const Stock = lazy(() => import("@/pages/Stock"));
 const Proof = lazy(() => import("@/pages/Proof"));

@@ -12,6 +12,7 @@ import * as Astronomy from "astronomy-engine";
 import { useReducedMotion } from "motion/react";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
+import { moonState } from "./moon";
 
 export interface SkyEvent {
   tx: string;
@@ -192,18 +193,8 @@ function Dome() {
 }
 
 /** Tonight's real phase: illuminated fraction + which limb is lit. */
-export function moonState(date = new Date()) {
-  const ill = Astronomy.Illumination(Astronomy.Body.Moon, date);
-  const phase = Astronomy.MoonPhase(date); // 0 new → 90 first quarter → 180 full → 270 last quarter
-  const waxing = phase < 180;
-  const fraction = ill.phase_fraction;
-  const name =
-    fraction < 0.03 ? "New moon" : fraction > 0.97 ? "Full moon" : phase < 90 ? "Waxing crescent" : phase < 180 ? (fraction > 0.5 ? "Waxing gibbous" : "First quarter") : phase < 270 ? (fraction > 0.5 ? "Waning gibbous" : "Last quarter") : "Waning crescent";
-  return { phaseAngle: ill.phase_angle, fraction, waxing, name };
-}
-
 function Moon({ quality }: { quality: "high" | "low" }) {
-  const [color, normal] = useLoader(THREE.TextureLoader, [quality === "low" ? "/tex/moon-color-1k.jpg" : "/tex/moon-color-2k.jpg", "/tex/moon-normal-1k.png"]);
+  const [color, normal] = useLoader(THREE.TextureLoader, [quality === "low" ? "/tex/moon-color-1k.jpg" : "/tex/moon-color-2k.jpg", "/tex/moon-normal-1k.webp"]);
   const { camera, size } = useThree();
   const group = useRef<THREE.Group>(null);
   const light = useRef<THREE.DirectionalLight>(null);
@@ -427,13 +418,3 @@ export default function NightSky({ events = [], className = "", quality: q, paus
   );
 }
 
-export function MoonPhaseLabel() {
-  const s = useMemo(() => moonState(), []);
-  const day = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "America/New_York" }).format(new Date());
-  if (s.fraction < 0.03) return <span>tonight is a new moon, the darkest night of the month</span>;
-  return (
-    <span>
-      {s.name.toLowerCase()}, {Math.round(s.fraction * 100)}% lit ({day})
-    </span>
-  );
-}
