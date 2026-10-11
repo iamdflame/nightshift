@@ -107,15 +107,16 @@ export class Web3Feeds {
       for (const usd of SIZES_USD) {
         for (const side of ["buy", "sell"] as const) {
           if (side === "sell" && !px) continue;
-          const amount = side === "buy" ? BigInt(usd) * 10n ** 18n : BigInt(Math.floor((usd / px!) * 1e6)) * 10n ** BigInt(t.decimals - 6);
+          // USDT is 18-decimal on BSC; the stock token uses its own decimals (any value, including < 6).
+          const amount = side === "buy" ? BigInt(usd) * 10n ** 18n : (BigInt(Math.floor((usd / px!) * 1e6)) * 10n ** BigInt(t.decimals)) / 1_000_000n;
           const from = side === "buy" ? USDT : t.address;
           const to = side === "buy" ? t.address : USDT;
           const base = [Date.now(), t.address, t.symbol, t.ticker, t.issuer, side, usd] as const;
           try {
             const routes = (await this.client.trading.quote({ binanceChainId: BSC, amount: amount.toString(), fromTokenAddress: from, toTokenAddress: to, userWalletAddress: QUOTE_WALLET })) as unknown as Record<string, unknown>[] | Record<string, unknown>;
             const best = (Array.isArray(routes) ? (routes.find((r) => r.isBest) ?? routes[0]) : routes) as Record<string, string | undefined> | undefined;
-            const fromAmt = Number(best?.fromTokenAmount ?? 0) / 1e18;
-            const toAmt = Number(best?.toTokenAmount ?? 0) / 1e18;
+            const fromAmt = Number(best?.fromTokenAmount ?? 0) / 10 ** (side === "buy" ? 18 : t.decimals);
+            const toAmt = Number(best?.toTokenAmount ?? 0) / 10 ** (side === "buy" ? t.decimals : 18);
             const perToken = side === "buy" ? (toAmt > 0 ? fromAmt / toAmt : null) : fromAmt > 0 ? toAmt / fromAmt : null;
             ins.run(...base, best?.fromTokenAmount ?? null, best?.toTokenAmount ?? null, best?.executionMode ?? null, best?.priceImpactPercent != null ? Number(best.priceImpactPercent) : null, best?.estimateGasFee ?? null, best?.tradeFee ?? null, best?.vendorName ?? null, perToken, null, null, session);
           } catch (e) {

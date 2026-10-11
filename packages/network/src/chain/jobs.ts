@@ -46,19 +46,44 @@ export function jobDescription(forecaster: Role, anchorTime: number): string {
   });
 }
 
+/**
+ * Create + register + budget + fund each forecaster's job for one open. Every stage is recorded as it lands,
+ * so a failure part-way (e.g. too little U) resumes on the next tick instead of minting another job.
+ */
 export async function openJobs(db: DatabaseSync, anchorTime: number): Promise<void> {
   const treasury = await client("treasury");
   for (const f of FORECASTERS) {
-    const exists = db.prepare(`SELECT job_id FROM jobs WHERE forecaster = ? AND anchor_time = ?`).get(f, anchorTime);
-    if (exists) continue;
-    const created = await treasury.createJob({ provider: walletFor(f).address, expiredAt: BigInt(Math.floor(anchorTime / 1000) + 2 * 86_400), description: jobDescription(f, anchorTime) });
-    if (created.jobId == null) throw new Error(`createJob returned no jobId (tx ${created.transactionHash})`);
-    const jobId = created.jobId;
-    await treasury.registerJob(jobId);
-    await treasury.setBudget(jobId, BUDGET_U);
-    const funded = await treasury.fund(jobId, BUDGET_U);
-    db.prepare(`INSERT INTO jobs VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(jobId.toString(), f, anchorTime, BUDGET_U.toString(), "funded", created.transactionHash, funded.transactionHash, null, null, null, null, null, Date.now());
-    log(`job ${jobId} for ${f} @ ${new Date(anchorTime).toISOString()} created+funded (${created.transactionHash})`);
+    let row = db.prepare(`SELECT job_id, status FROM jobs WHERE forecaster = ? AND anchor_time = ?`).get(f, anchorTime) as { job_id: string; status: string } | undefined;
+    if (!row) {
+      if ((await treasury.tokenBalance()) < BUDGET_U) {
+        log(`no job for ${f}: treasury holds less than ${Number(BUDGET_U) / 1e18} U`);
+        continue;
+      }
+      const created = await treasury.createJob({ provider: walletFor(f).address, expiredAt: BigInt(Math.floor(anchorTime / 1000) + 2 * 86_400), description: jobDescription(f, anchorTime) });
+      if (created.jobId == null) throw new Error(`createJob returned no jobId (tx ${created.transactionHash})`);
+      db.prepare(`INSERT INTO jobs VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(created.jobId.toString(), f, anchorTime, BUDGET_U.toString(), "created", created.transactionHash, null, null, null, null, null, null, Date.now());
+      row = { job_id: created.jobId.toString(), status: "created" };
+      log(`job ${row.job_id} for ${f} @ ${new Date(anchorTime).toISOString()} created (${created.transactionHash})`);
+    }
+    const r = row;
+    const id = BigInt(r.job_id);
+    const set = (status: string, fundTx?: string) => {
+      r.status = status;
+      db.prepare(`UPDATE jobs SET status = ?, fund_tx = COALESCE(?, fund_tx), updated_at = ? WHERE job_id = ?`).run(status, fundTx ?? null, Date.now(), r.job_id);
+    };
+    if (r.status === "created") {
+      await treasury.registerJob(id);
+      set("registered");
+    }
+    if (r.status === "registered") {
+      await treasury.setBudget(id, BUDGET_U);
+      set("budgeted");
+    }
+    if (r.status === "budgeted") {
+      const funded = await treasury.fund(id, BUDGET_U);
+      set("funded", funded.transactionHash);
+      log(`job ${r.job_id} (${f}) funded with ${Number(BUDGET_U) / 1e18} U (${funded.transactionHash})`);
+    }
   }
 }
 
@@ -78,29 +103,31 @@ export async function submitJobs(db: DatabaseSync, anchorTime: number): Promise<
   }
 }
 
-/** Score each forecaster on this open and dispute any job that missed its acceptance bar. */
+/**
+ * Score each submitted job on exactly the round it delivered, against the anchor (stale oracle) on the same
+ * round and tokens, and dispute any job that missed its acceptance bar.
+ */
 export async function judgeJobs(db: DatabaseSync, anchorTime: number): Promise<void> {
-  const rows = db
-    .prepare(`SELECT forecaster, AVG(crps) c, AVG(covered) cov, COUNT(*) n FROM scores WHERE anchor_time = ? GROUP BY forecaster`)
-    .all(anchorTime) as { forecaster: Role; c: number; cov: number; n: number }[];
-  if (rows.length === 0) return;
-  const by = Object.fromEntries(rows.map((r) => [r.forecaster, r])) as Record<string, { c: number; cov: number; n: number }>;
-  const anchor = by.anchor;
   const treasury = await client("treasury");
-  for (const f of FORECASTERS) {
-    const job = db.prepare(`SELECT job_id FROM jobs WHERE forecaster = ? AND anchor_time = ? AND status = 'submitted'`).get(f, anchorTime) as { job_id: string } | undefined;
-    const s = by[f];
-    if (!job || !s || !anchor) continue;
-    const pass = f === "anchor" ? s.cov >= 0.8 : s.c <= anchor.c;
-    const report = JSON.stringify({ forecaster: f, anchorTime, n: s.n, crpsBps: s.c * 1e4, anchorCrpsBps: anchor.c * 1e4, coverage: s.cov, pass });
+  const jobs = db.prepare(`SELECT job_id, forecaster, deliverable FROM jobs WHERE anchor_time = ? AND status = 'submitted'`).all(anchorTime) as { job_id: string; forecaster: Role; deliverable: string }[];
+  for (const job of jobs) {
+    const c = db.prepare(`SELECT round FROM commitments WHERE forecaster = ? AND anchor_time = ? AND root = ?`).get(job.forecaster, anchorTime, job.deliverable) as { round: number } | undefined;
+    if (!c) continue;
+    const stats = (f: string) =>
+      db.prepare(`SELECT AVG(crps) c, AVG(covered) cov, COUNT(*) n FROM scores WHERE anchor_time = ? AND round = ? AND forecaster = ?`).get(anchorTime, c.round, f) as { c: number | null; cov: number | null; n: number };
+    const s = stats(job.forecaster);
+    const anchor = stats("anchor");
+    if (!s.n || !anchor.n || s.c == null || anchor.c == null) continue;
+    const pass = job.forecaster === "anchor" ? (s.cov ?? 0) >= 0.8 : s.c <= anchor.c;
+    const report = JSON.stringify({ forecaster: job.forecaster, anchorTime, round: c.round, n: s.n, crpsBps: s.c * 1e4, anchorCrpsBps: anchor.c * 1e4, coverage: s.cov, pass });
     const evidence = `0x${createHash("sha256").update(report).digest("hex")}` as `0x${string}`;
     if (pass) {
       db.prepare(`UPDATE jobs SET status='accepted', verdict='pass', evidence=?, updated_at=? WHERE job_id=?`).run(evidence, Date.now(), job.job_id);
-      log(`job ${job.job_id} (${f}) PASSES: CRPS ${(s.c * 1e4).toFixed(1)} vs anchor ${(anchor.c * 1e4).toFixed(1)} bps — settles optimistically`);
+      log(`job ${job.job_id} (${job.forecaster}) PASSES on round ${c.round}: CRPS ${(s.c * 1e4).toFixed(1)} vs anchor ${(anchor.c * 1e4).toFixed(1)} bps; settles optimistically`);
     } else {
       const tx = await treasury.dispute(BigInt(job.job_id));
       db.prepare(`UPDATE jobs SET status='disputed', verdict='fail', evidence=?, judge_tx=?, updated_at=? WHERE job_id=?`).run(evidence, tx.transactionHash, Date.now(), job.job_id);
-      log(`job ${job.job_id} (${f}) FAILS its bar → disputed (${tx.transactionHash})`);
+      log(`job ${job.job_id} (${job.forecaster}) FAILS its bar on round ${c.round} → disputed (${tx.transactionHash})`);
     }
   }
 }
@@ -119,21 +146,38 @@ export async function settleJobs(db: DatabaseSync): Promise<void> {
   }
 }
 
+/** Funded jobs that never got a deliverable: reclaim the escrow once they expire; unfunded leftovers are closed. */
+export async function reclaimJobs(db: DatabaseSync, now = Date.now()): Promise<void> {
+  const treasury = await client("treasury");
+  const expired = db.prepare(`SELECT job_id FROM jobs WHERE status = 'funded' AND anchor_time + 2 * 86400000 + 600000 < ?`).all(now) as { job_id: string }[];
+  for (const j of expired) {
+    try {
+      const tx = await treasury.claimRefund(BigInt(j.job_id));
+      db.prepare(`UPDATE jobs SET status='refunded', judge_tx=?, updated_at=? WHERE job_id=?`).run(tx.transactionHash, Date.now(), j.job_id);
+      log(`job ${j.job_id} expired without a deliverable → refunded (${tx.transactionHash})`);
+    } catch (e) {
+      log(`job ${j.job_id} refund not available yet: ${(e as Error).message.split("\n")[0]}`);
+    }
+  }
+  db.prepare(`UPDATE jobs SET status='abandoned', updated_at=? WHERE status IN ('created','registered','budgeted') AND anchor_time < ?`).run(Date.now(), now);
+}
+
 /**
  * The autonomous lifecycle, run by the Night Shift runner after every round (serialized with the other
- * treasury transactions): open the next open's jobs, submit each forecaster's last on-chain root in the final round
- * before the bell, judge once the open is scored, settle after the dispute window.
+ * treasury transactions): open (or resume opening) the next open's jobs, submit each forecaster's last on-chain
+ * root in the final round before the bell, judge two hours after the open (every ticker's open is in by then),
+ * settle after the dispute window, reclaim expired escrow.
  */
 export async function jobsTick(db: DatabaseSync, now = Date.now()): Promise<void> {
   db.exec(SCHEMA);
   const next = nextRegularOpen(now);
-  const has = (a: number) => (db.prepare(`SELECT COUNT(*) n FROM jobs WHERE anchor_time = ?`).get(a) as { n: number }).n > 0;
-  if (next - now > 45 * 60_000 && !has(next)) await openJobs(db, next);
+  if (next - now > 45 * 60_000) await openJobs(db, next);
   // Rounds land at :00/:30 and opens at :30, so the round 30 min before the bell is the last chance.
   if (next - now <= 35 * 60_000) await submitJobs(db, next);
-  const judged = db.prepare(`SELECT DISTINCT j.anchor_time a FROM jobs j WHERE j.status = 'submitted' AND j.anchor_time < ? AND EXISTS (SELECT 1 FROM scores s WHERE s.anchor_time = j.anchor_time)`).all(now) as { a: number }[];
-  for (const { a } of judged) await judgeJobs(db, a);
+  const due = db.prepare(`SELECT DISTINCT anchor_time a FROM jobs WHERE status = 'submitted' AND anchor_time + 2 * 3600000 < ?`).all(now) as { a: number }[];
+  for (const { a } of due) await judgeJobs(db, a);
   await settleJobs(db);
+  await reclaimJobs(db, now);
 }
 
 if (process.argv[1]?.endsWith("jobs.ts")) {

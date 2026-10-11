@@ -56,15 +56,23 @@ const executor = walletFor("executor");
 const borrower = executor.address as `0x${string}`;
 
 // 1. A fresh report: credit refuses reports older than its maxAge (1 h).
-const db = openNetworkDb();
-const posted = await postConsensus(db);
-const report = (await publicClient.readContract({ address: d.NightshiftOracle, abi: oracleAbi as Abi, functionName: "getReport", args: [NVDAB] })) as {
-  fairValue: bigint;
-  lower: bigint;
-  upper: bigint;
-  updatedAt: bigint;
-  round: bigint;
+type Report = { fairValue: bigint; lower: bigint; upper: bigint; updatedAt: bigint; round: bigint };
+const readReport = async () => {
+  try {
+    return (await publicClient.readContract({ address: d.NightshiftOracle!, abi: oracleAbi as Abi, functionName: "getReport", args: [NVDAB] })) as Report;
+  } catch {
+    return null; // no report yet
+  }
 };
+// Post only when the on-chain report is missing or older than 30 min: if a hosted runner is publishing, it is
+// fresh and we never sign for the treasury concurrently with it.
+let report = await readReport();
+let posted = 0;
+if (!report || Math.floor(Date.now() / 1000) - Number(report.updatedAt) > 1800) {
+  posted = await postConsensus(openNetworkDb());
+  report = await readReport();
+}
+if (!report) throw new Error("no NVDAB report on-chain");
 const age = Math.floor(Date.now() / 1000) - Number(report.updatedAt);
 log(`oracle: NVDAB fair value $${formatUnits(report.fairValue, 8)}, next-open band [$${formatUnits(report.lower, 8)}, $${formatUnits(report.upper, 8)}], round ${report.round}, ${age}s old (${posted} reports posted now)`);
 if (age > 3000) throw new Error("NVDAB report is stale; is the treasury funded and the oracle reachable?");
@@ -73,6 +81,8 @@ if (age > 3000) throw new Error("NVDAB report is stale; is the treasury funded a
 if (!state.steps.buy) {
   const client = new BinanceWeb3Client({ telemetry: [new SqliteTelemetrySink()] });
   const out = await new EoaExecutor(client, executor).swap({ from: USDT, to: NVDAB, amount: BUY_USDT, slippagePercent: "1" });
+  // Only a filled swap counts: an RFQ order still pending (no tx hash) must be retried, not skipped.
+  if (!out.txHash) throw new Error(`buy not filled yet (order ${out.orderId ?? "?"}); re-run once it settles`);
   done("buy", { tx: out.txHash ?? undefined, mode: out.mode, vendor: out.quote.vendor, verdict: out.receipt?.tca.verdict ?? null, receiptHash: out.receipt?.receiptHash ?? null });
   log(`bought NVDAB with ${formatUnits(BUY_USDT, 18)} USDT via ${out.quote.vendor} (${out.mode}) → ${out.txHash ? tx(out.txHash) : out.orderId}; ${out.receipt?.tca.verdict ?? "receipt pending"}`);
 }

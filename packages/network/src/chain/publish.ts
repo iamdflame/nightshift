@@ -40,7 +40,7 @@ export async function commitPending(db: DatabaseSync, now = Date.now()): Promise
       const tx = await sendContractTx(walletFor(c.forecaster), d.ForecastBook, forecastBookAbi as Abi, "commit", [BigInt(c.round), BigInt(Math.floor(c.anchor_time / 1000)), c.root, c.count]);
       db.prepare(`UPDATE commitments SET chain_status = ?, tx_hash = ? WHERE round = ? AND forecaster = ?`).run(tx.status === "success" ? "committed" : "reverted", tx.hash, c.round, c.forecaster);
       log(`commit ${c.forecaster} round ${c.round} → ${tx.hash} (${tx.status}, gas ${tx.gasUsed})`);
-      sent++;
+      if (tx.status === "success") sent++;
     } catch (e) {
       log(`commit ${c.forecaster} round ${c.round} failed: ${(e as Error).message.split("\n")[0]}`);
     }
@@ -104,7 +104,7 @@ export async function postConsensus(db: DatabaseSync, batch = 45): Promise<numbe
       const upd = db.prepare(`UPDATE consensus SET chain_status = ?, tx_hash = ? WHERE round = ? AND token = ?`);
       for (const t of tokens) upd.run(tx.status === "success" ? "posted" : "reverted", tx.hash, latest.r, t);
       log(`oracle post round ${latest.r}: ${tokens.length} tokens → ${tx.hash} (${tx.status}, gas ${tx.gasUsed})`);
-      posted += tokens.length;
+      if (tx.status === "success") posted += tokens.length;
     } catch (e) {
       log(`oracle post failed: ${(e as Error).message.split("\n")[0]}`);
     }

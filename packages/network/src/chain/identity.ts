@@ -47,7 +47,7 @@ export const AGENT_CARDS: Record<Role, { name: string; description: string; capa
   },
 };
 
-type Registry = Partial<Record<Role, { agentId: number | null; address: string; tx: string; agentURI: string; registeredAt: string }>>;
+type Registry = Partial<Record<Role, { agentId: number | null; address: string; tx: string; agentURI: string; registeredAt: string; updateTx?: string }>>;
 const load = (): Registry => (existsSync(REGISTRY_FILE) ? (JSON.parse(readFileSync(REGISTRY_FILE, "utf8")) as Registry) : {});
 
 export async function registerAll(dryRun = false): Promise<Registry> {
@@ -66,16 +66,21 @@ export async function registerAll(dryRun = false): Promise<Registry> {
       continue;
     }
     const known = reg[role];
-    if (known?.agentId != null) {
+    // A registration tx on record means the identity exists, even if its agentId wasn't decoded: never mint twice.
+    if (known?.tx) {
       if (known.agentURI === uri) {
         console.log(`${role.padEnd(9)} already registered: agentId ${known.agentId}`);
         continue;
       }
+      if (known.agentId == null) {
+        console.log(`${role.padEnd(9)} registered in ${known.tx} but its agentId wasn't decoded; set it in ${REGISTRY_FILE} to update the card`);
+        continue;
+      }
       // Card or endpoints changed (e.g. the public URL now exists): update the URI in place.
       const u = await agent.setAgentUri(known.agentId, uri);
-      reg[role] = { ...known, agentURI: uri, tx: (u as { transactionHash?: string }).transactionHash ?? known.tx, registeredAt: known.registeredAt };
+      reg[role] = { ...known, agentURI: uri, updateTx: u.transactionHash };
       writeFileSync(REGISTRY_FILE, JSON.stringify(reg, null, 2));
-      console.log(`${role.padEnd(9)} updated agentId ${known.agentId} card → ${(u as { transactionHash?: string }).transactionHash}`);
+      console.log(`${role.padEnd(9)} updated agentId ${known.agentId} card → ${u.transactionHash}`);
       continue;
     }
     const r = await agent.registerAgent(uri);

@@ -17,7 +17,8 @@ import { registerX402 } from "./x402.ts";
 loadEnv(); // Binance Web3 API key (B402 facilitator for /x402)
 const PORT = Number(process.env.PORT ?? 8787);
 const q = new Queries();
-const app = Fastify({ logger: { level: process.env.LOG_LEVEL ?? "info" } });
+// trustProxy: behind Railway's edge, req.ip must be the client (X-Forwarded-For) or every caller shares one rate-limit bucket.
+const app = Fastify({ logger: { level: process.env.LOG_LEVEL ?? "info" }, trustProxy: true });
 await app.register(cors, { origin: true, exposedHeaders: ["PAYMENT-REQUIRED", "PAYMENT-RESPONSE"] });
 // Public on the internet: 120 requests/min per client; receipts (RPC-heavy) get their own lower limit below.
 await app.register(rateLimit, { max: 120, timeWindow: "1 minute" });
@@ -51,7 +52,7 @@ app.get<{ Params: { ticker: string } }>("/v1/which/:ticker", async (req, reply) 
 app.get("/v1/radar", async () => q.radar());
 app.get("/v1/identities", async () => q.identities());
 app.get<{ Querystring: { ticker?: string } }>("/v1/instruments", async (req) => q.instruments(req.query.ticker));
-app.get<{ Querystring: { limit?: string } }>("/v1/rounds", async (req) => q.rounds(Math.min(500, Number(req.query.limit ?? 50))));
+app.get<{ Querystring: { limit?: string } }>("/v1/rounds", async (req) => q.rounds(Math.min(500, Math.max(1, Math.trunc(Number(req.query.limit ?? 50)) || 50))));
 app.get<{ Params: { round: string; forecaster: string; token: string } }>("/v1/rounds/:round/proof/:forecaster/:token", async (req, reply) => {
   const r = q.proof(Number(req.params.round), req.params.forecaster, req.params.token);
   return r ?? reply.code(404).send({ error: "forecast not found in that round" });
