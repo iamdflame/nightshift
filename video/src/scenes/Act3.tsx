@@ -2,6 +2,7 @@ import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
 import data from "../data.json";
 import { Owl } from "../components/Owl";
 import { Broll, Card, Counter, Kicker, Kinetic, Mono, Night, Rise, Screen, short, Tag, usd, useIn } from "../components/ui";
+import { cue } from "../cues";
 import { C, F } from "../theme";
 import { Shot } from "./Act1";
 
@@ -11,7 +12,8 @@ type Step = { tx?: string; at: string; usdt?: string; nvdab?: string };
 // ── S7 · Contracts read it ──────────────────────────────────────────────────────────────────────
 export function S7({ dur }: { dur: number }) {
   const f = useCurrentFrame();
-  const a = at(dur, 0.56);
+  const a = cue("s7", "The same price ships", dur, 0.56) - 6;
+  const valued = cue("s7", "mainnet, with the collateral", dur, 0.35);
   const loan = data.chain.loan as unknown as { steps: Record<string, Step>; summary: { valuedAt: string; fairValue: string; debtUsdt: string; healthFactor: string } };
   const steps: [string, string][] = [
     ["buy", "Bought NVDAB through the Binance Trading API"],
@@ -50,7 +52,7 @@ export function S7({ dur }: { dur: number }) {
               </Rise>
             ))}
           </div>
-          <Rise at={74} style={{ marginTop: 30 }}>
+          <Rise at={valued} style={{ marginTop: 30 }}>
             <span style={{ fontFamily: F.sans, fontSize: 32, color: C.moon2 }}>
               Collateral valued at <span style={{ fontFamily: F.mono, color: C.sodium }}>{usd(Number(loan.summary.valuedAt))}</span>, the band's low edge, not the{" "}
               <span style={{ fontFamily: F.mono, color: C.moon1 }}>{usd(Number(loan.summary.fairValue))}</span> fair value. Health factor{" "}
@@ -105,7 +107,7 @@ export function S7({ dur }: { dur: number }) {
 // ── S8 · Built on Binance Web3 ──────────────────────────────────────────────────────────────────
 const MODULE_NAME: Record<string, string> = { rwa: "RWA Data", trading: "Trading", transaction: "Transaction", b402: "b402 payments" };
 export function S8({ dur }: { dur: number }) {
-  const a = at(dur, 0.48);
+  const a = cue("s8", "RWA Data for every stock", dur, 0.48) - 6;
   return (
     <AbsoluteFill style={{ background: C.night0 }}>
       <Shot from={0} to={a + 8} fadeIn={0}>
@@ -156,7 +158,17 @@ export function S9({ dur }: { dur: number }) {
     ["baw", "x402-payment preview → USDT 0.01, READY_TO_SIGN"],
   ];
   const per = Math.max(18, Math.floor((dur * 0.7) / lines.length));
-  const paper = interpolate(f, [at(dur, 0.25), at(dur, 0.7)], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const lineAt = [
+    14,
+    cue("s9", "the cheapest real share", dur, 0.3) - 10,
+    cue("s9", "the cheapest real share", dur, 0.3) + 18,
+    cue("s9", "the cheapest real share", dur, 0.3) + 60,
+    cue("s9", "the cheapest real share", dur, 0.3) + 92,
+    cue("s9", "It can even pay", dur, 0.7),
+    cue("s9", "It can even pay", dur, 0.7) + 40,
+  ];
+  const printAt = cue("s9", "the cheapest real share", dur, 0.3) + 92;
+  const paper = interpolate(f, [printAt, printAt + 75], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   return (
     <AbsoluteFill style={{ background: C.night0 }}>
       <Night seed={31} />
@@ -172,7 +184,7 @@ export function S9({ dur }: { dur: number }) {
             </div>
             <div style={{ padding: "26px 30px", display: "grid", gap: 18 }}>
               {lines.map(([who, text], i) => {
-                const start = 14 + i * per;
+                const start = lineAt[i] ?? 14 + i * per;
                 const n = Math.round(interpolate(f, [start, start + Math.min(per - 4, text.length * 0.6)], [0, text.length], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }));
                 if (f < start) return null;
                 const tint = who === "you" ? C.moon0 : who === "receipt" ? C.up : who === "x402" ? C.sodium : C.moon1;

@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { AbsoluteFill, interpolate, Sequence, useCurrentFrame } from "remotion";
 import data from "../data.json";
 import { Broll, Card, Counter, Kicker, Kinetic, Mono, Night, Rise, Screen, usd, useIn } from "../components/ui";
+import { cue } from "../cues";
 import { C, F } from "../theme";
 
 /** A sub-shot inside a scene: its own frame clock, with a short fade at each end. */
@@ -24,8 +25,9 @@ const at = (dur: number, x: number) => Math.round(dur * x);
 
 // ── S1 · Cold open ──────────────────────────────────────────────────────────────────────────────
 export function S1({ dur }: { dur: number }) {
-  const a = at(dur, 0.3);
-  const b = at(dur, 0.58);
+  const a = cue("s1", "but on BNB Chain", dur, 0.3) - 4;
+  const b = cue("s1", "So here's the question", dur, 0.58) - 6;
+  const q = cue("s1", "what is it actually worth", dur, 0.84) - 4;
   return (
     <AbsoluteFill style={{ background: C.night0 }}>
       <Shot from={0} to={a + 8} fadeIn={0}>
@@ -36,21 +38,21 @@ export function S1({ dur }: { dur: number }) {
               Saturday, 10:00 p.m. ET
             </Mono>
           </Rise>
-          <Kinetic text="Wall Street is asleep." at={20} size={120} style={{ marginTop: 26 }} />
+          <Kinetic text="Wall Street is asleep." at={cue("s1", "Wall Street is asleep", dur, 0.11)} size={120} style={{ marginTop: 26 }} />
         </AbsoluteFill>
       </Shot>
       <Shot from={a} to={b + 8}>
         <Broll src="broll/hd/city-night.mp4" zoom={[1.08, 1.0]} scrim={0.3} />
         <AbsoluteFill style={{ padding: "0 140px", justifyContent: "flex-end", paddingBottom: 220 }}>
           <Kinetic text="On BNB Chain, NVIDIA still trades." at={6} size={92} />
-          <Rise at={30} style={{ marginTop: 18 }}>
+          <Rise at={cue("s1", "Lenders are still", dur, 0.45) - a} style={{ marginTop: 18 }}>
             <span style={{ fontFamily: F.sans, fontSize: 34, color: C.moon1 }}>Lenders still lend against it.</span>
           </Rise>
         </AbsoluteFill>
       </Shot>
       <Shot from={b} to={dur} fadeOut={0}>
         <Screen src="capture/hero.mp4" from={30} frame={false} focus={[[0, 1.18, 30, 30], [dur - b, 1.0, 50, 50]]} />
-        <Question at={at(dur, 0.84) - b} />
+        <Question at={q - b} />
       </Shot>
     </AbsoluteFill>
   );
@@ -69,7 +71,7 @@ function Question({ at: start }: { at: number }) {
 
 // ── S2 · The dark weekend ───────────────────────────────────────────────────────────────────────
 /** One cell per half hour of a US week (Mon→Sun, ET); regular sessions lit. */
-function WeekBar({ start }: { start: number }) {
+function WeekBar({ start, dark }: { start: number; dark: number }) {
   const f = useCurrentFrame();
   const cells = 336;
   const W = 1560;
@@ -80,7 +82,7 @@ function WeekBar({ start }: { start: number }) {
     return day < 5 && h >= 9.5 && h < 16;
   };
   const sweep = interpolate(f, [start, start + 70], [0, cells], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-  const wk = interpolate(f, [start + 80, start + 100], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const wk = interpolate(f, [dark, dark + 20], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   const friClose = 4 * 48 + 32;
   const monOpen = 7 * 48 + 19; // next Monday 09:30, drawn past the end
@@ -107,9 +109,10 @@ function WeekBar({ start }: { start: number }) {
 }
 
 export function S2({ dur }: { dur: number }) {
-  const a = at(dur, 0.42);
-  const b = at(dur, 0.62);
-  const c = at(dur, 0.8);
+  const a = cue("s2", "and 62%", dur, 0.42) - 4;
+  const b = cue("s2", "When the market closes", dur, 0.62) - 4;
+  const c = cue("s2", "What's left is", dur, 0.8) - 4;
+  const p32 = cue("s2", "The US market sets", dur, 0.1);
   return (
     <AbsoluteFill style={{ background: C.night0 }}>
       <Shot from={0} to={a + 8} fadeIn={0}>
@@ -121,13 +124,13 @@ export function S2({ dur }: { dur: number }) {
               <Counter to={168} at={8} dur={36} size={150} />
               <span style={{ fontFamily: F.display, fontSize: 64, color: C.moon1 }}>hours in a week.</span>
             </div>
-            <Rise at={46} style={{ marginTop: 8 }}>
+            <Rise at={p32} style={{ marginTop: 8 }}>
               <span style={{ fontFamily: F.display, fontSize: 64, color: C.moon0 }}>
                 The market prices <span style={{ color: C.sodium }}>32.5</span> of them.
               </span>
             </Rise>
           </div>
-          <WeekBar start={20} />
+          <WeekBar start={p32 - 10} dark={cue("s2", "From Friday's close", dur, 0.25)} />
         </AbsoluteFill>
       </Shot>
       <Shot from={a} to={b + 8}>
@@ -197,10 +200,11 @@ function Band({ lower, upper, fair, start }: { lower: number; upper: number; fai
 }
 
 export function S3({ dur }: { dur: number }) {
-  const a = at(dur, 0.64);
+  const a = cue("s3", "and it comes with NO error bar", dur, 0.64) - 6;
   const f = useCurrentFrame();
   const w = data.backtest.weekendDark;
-  const bars = interpolate(f, [at(dur, 0.36), at(dur, 0.36) + 30], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const barsAt = cue("s3", "We checked every dark weekend", dur, 0.36);
+  const bars = interpolate(f, [barsAt, barsAt + 30], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   return (
     <AbsoluteFill style={{ background: C.night0 }}>
       <Shot from={0} to={a + 8} fadeIn={0}>
@@ -214,7 +218,7 @@ export function S3({ dur }: { dur: number }) {
             <span style={{ fontFamily: F.sans, fontSize: 30, color: C.moon2, marginLeft: 24 }}>the same call, asked of two contracts on BNB Chain</span>
           </Rise>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 40, marginTop: 44 }}>
-            <Rise at={18}>
+            <Rise at={cue("s3", "Ask Venus", dur, 0.1)}>
               <Card>
                 <div style={{ fontFamily: F.sans, fontSize: 30, color: C.moon1 }}>Venus</div>
                 <div style={{ fontFamily: F.sans, fontSize: 22, color: C.moon3 }}>ResilientOracle, the token's own trading price</div>
@@ -224,19 +228,19 @@ export function S3({ dur }: { dur: number }) {
                 <div style={{ fontFamily: F.sans, fontSize: 28, color: C.moon2, marginTop: 10 }}>One number. No view of the open.</div>
               </Card>
             </Rise>
-            <Rise at={34}>
+            <Rise at={cue("s3", "the token's own trading price", dur, 0.3)}>
               <Card style={{ borderColor: "rgba(255,178,63,0.45)" }}>
                 <div style={{ fontFamily: F.sans, fontSize: 30, color: C.moon1 }}>Nightshift</div>
                 <div style={{ fontFamily: F.sans, fontSize: 22, color: C.moon3 }}>Venus-compatible adapter, fair value for the next open</div>
                 <div style={{ marginTop: 22 }}>
                   <Mono size={92} color={C.moon0}>{usd(data.nightshift.fairValue)}</Mono>
                 </div>
-                <Band lower={data.nightshift.lower} upper={data.nightshift.upper} fair={data.nightshift.fairValue} start={50} />
+                <Band lower={data.nightshift.lower} upper={data.nightshift.upper} fair={data.nightshift.fairValue} start={cue("s3", "the token's own trading price", dur, 0.3) + 16} />
                 <div style={{ fontFamily: F.sans, fontSize: 28, color: C.moon2, marginTop: 4 }}>And a 90% range for the gap.</div>
               </Card>
             </Rise>
           </div>
-          <Rise at={at(dur, 0.34)} style={{ marginTop: 44 }}>
+          <Rise at={barsAt - 6} style={{ marginTop: 44 }}>
             <div style={{ fontFamily: F.sans, fontSize: 28, color: C.moon1, marginBottom: 14 }}>Every dark weekend since June: error at Monday's open (bps, our backtest)</div>
             {[
               ["The token's own price", w.echo, C.moon2],
@@ -248,7 +252,7 @@ export function S3({ dur }: { dur: number }) {
                 <Mono size={26}>{(v as number).toFixed(1)}</Mono>
               </div>
             ))}
-            <Rise at={at(dur, 0.5)} style={{ marginTop: 18 }}>
+            <Rise at={cue("s3", "That number called", dur, 0.5)} style={{ marginTop: 18 }}>
               <span style={{ fontFamily: F.display, fontSize: 48, color: C.sodium }}>Barely better. And no error bar.</span>
             </Rise>
           </Rise>

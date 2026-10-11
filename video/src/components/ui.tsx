@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { AbsoluteFill, Easing, interpolate, OffthreadVideo, random, spring, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
+import { aligned, captionAt } from "../cues";
 import { captionChunks } from "../script";
 import { C, F } from "../theme";
 
@@ -161,14 +162,17 @@ export function Screen({ src, from = 0, focus = [[0, 1, 50, 50]], url = "nightsh
 }
 
 /** Burned-in captions for muted viewing: chunks spread across the scene in proportion to their length. */
-export function Captions({ vo, dur, lead = 8, tail = 14 }: { vo: string; dur: number; lead?: number; tail?: number }) {
+export function Captions({ id, vo, dur, lead = 8, tail = 14 }: { id: string; vo: string; dur: number; lead?: number; tail?: number }) {
   const f = useCurrentFrame();
+  // With a voice file: the measured timings of each sentence. Without: chunks spread by length.
+  const measured = captionAt(id, f);
   const span = Math.max(1, dur - lead - tail);
   const chunks = captionChunks(vo);
   const now = (f - lead) / span;
-  const c = chunks.find((x) => now >= x.from && now < x.to) ?? (now >= 1 ? chunks.at(-1) : undefined);
-  if (!c || f < lead) return null;
-  const local = f - (lead + c.from * span);
+  const est = chunks.find((x) => now >= x.from && now < x.to) ?? (now >= 1 ? chunks.at(-1) : undefined);
+  const c = measured ?? (est && f >= lead ? { text: est.text, from: lead + est.from * span } : null);
+  if (!c || (aligned(id) && !measured)) return null;
+  const local = f - c.from;
   const v = interpolate(local, [0, 6], [0, 1], { extrapolateRight: "clamp" });
   return (
     <AbsoluteFill style={{ justifyContent: "flex-end", alignItems: "center", paddingBottom: 54, pointerEvents: "none" }}>

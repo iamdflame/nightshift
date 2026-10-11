@@ -2,7 +2,7 @@
 // +0.7 s tail) or its estimate, scenes overlap by the 0.5 s cross-fade, and each caption chunk gets its share
 // of the scene by length. Run after the voice files are in public/vo/.
 import { spawnSync } from "node:child_process";
-import { existsSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -27,15 +27,24 @@ const ts = (frames) => {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")},${String(ms % 1000).padStart(3, "0")}`;
 };
 
+const alignFile = join(root, "src", "align.json");
+const align = existsSync(alignFile) ? JSON.parse(readFileSync(alignFile, "utf8")) : {};
 let start = 0;
 let n = 1;
 const out = [];
 for (const s of SCENES) {
+  const al = align[s.id];
   const vo = join(root, "public", "vo", `${s.id}.mp3`);
-  const dur = existsSync(vo) ? Math.ceil(probe(vo) * FPS) + LEAD + TAIL : s.estimate * FPS;
-  const span = dur - LEAD - TAIL;
-  for (const c of captionChunks(s.vo)) {
-    out.push(`${n++}\n${ts(start + LEAD + c.from * span)} --> ${ts(start + LEAD + c.to * span)}\n${c.text}\n`);
+  const dur = al ? Math.ceil(al.dur * FPS) + LEAD + TAIL : existsSync(vo) ? Math.ceil(probe(vo) * FPS) + LEAD + TAIL : s.estimate * FPS;
+  if (al) {
+    // Measured, as burned into the video: each caption from its spoken start until the next one starts.
+    al.chunks.forEach((c, i) => {
+      const until = al.chunks[i + 1]?.start ?? c.end + 0.5;
+      out.push(`${n++}\n${ts(start + LEAD + c.start * FPS)} --> ${ts(start + LEAD + until * FPS)}\n${c.text}\n`);
+    });
+  } else {
+    const span = dur - LEAD - TAIL;
+    for (const c of captionChunks(s.vo)) out.push(`${n++}\n${ts(start + LEAD + c.from * span)} --> ${ts(start + LEAD + c.to * span)}\n${c.text}\n`);
   }
   start += dur - XFADE;
 }

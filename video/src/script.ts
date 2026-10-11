@@ -82,6 +82,23 @@ const WRITTEN: [RegExp, string][] = [
 ];
 export const captionText = (vo: string) => WRITTEN.reduce((s, [re, to]) => s.replace(re, to), vo).replace(/\s+/g, " ").trim();
 
+/** Sentences, each split into caption-sized chunks (≤ 11 words, no orphan tails). */
+export function captionSentences(vo: string): string[][] {
+  return captionText(vo)
+    .split(/(?<=[.!?…:])(?<![ap]\.m\.)\s+/)
+    .map((s) => {
+      const words = s.trim().split(" ").filter(Boolean);
+      const parts: string[] = [];
+      for (let i = 0; i < words.length; i += 11) {
+        const part = words.slice(i, i + 11);
+        if (part.length < 4 && parts.length) parts[parts.length - 1] += ` ${part.join(" ")}`;
+        else parts.push(part.join(" "));
+      }
+      return parts;
+    })
+    .filter((p) => p.length);
+}
+
 /** Captions in readable chunks (a sentence, or up to ~11 words), each with its share of the scene by length. */
 export function captionChunks(vo: string): { text: string; from: number; to: number }[] {
   // Sentence ends are punctuation followed by a space, so "32.5" stays whole.

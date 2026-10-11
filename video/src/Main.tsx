@@ -1,12 +1,13 @@
 import { linearTiming, TransitionSeries } from "@remotion/transitions";
 import { fade } from "@remotion/transitions/fade";
 import { getAudioDurationInSeconds } from "@remotion/media-utils";
-import { Fragment, type FC } from "react";
+import { Fragment, type FC, useMemo } from "react";
 import { AbsoluteFill, Audio, type CalculateMetadataFunction, interpolate, Sequence, staticFile, useVideoConfig } from "remotion";
 import { Captions, Finish } from "./components/ui";
 import { S1, S2, S3 } from "./scenes/Act1";
 import { S4, S5, S6 } from "./scenes/Act2";
 import { S7, S8, S9, S10 } from "./scenes/Act3";
+import { aligned, speaking } from "./cues";
 import { SCENES } from "./script";
 import { FPS } from "./theme";
 
@@ -41,18 +42,43 @@ export function SceneWithVoice({ i, dur, hasVo, captions }: { i: number; dur: nu
       <Scene dur={dur} />
       {hasVo && (
         <Sequence from={LEAD}>
-          <Audio src={staticFile(`vo/${SCENES[i]!.id}.mp3`)} />
+          {/* loudness-normalised copy (-16 LUFS) made by scripts/align.mjs; the raw file if it isn't there */}
+          <Audio src={staticFile(aligned(SCENES[i]!.id) ? `vo-norm/${SCENES[i]!.id}.wav` : `vo/${SCENES[i]!.id}.mp3`)} />
         </Sequence>
       )}
-      {captions && <Captions vo={SCENES[i]!.vo} dur={dur} lead={LEAD} tail={TAIL} />}
+      {captions && <Captions id={SCENES[i]!.id} vo={SCENES[i]!.vo} dur={dur} lead={LEAD} tail={TAIL} />}
     </AbsoluteFill>
   );
 }
 
+/** Music level per frame: a bed between lines, ducked under the voice (smoothed so it breathes, not pumps). */
+function musicCurve(durations: number[], hasVo: boolean[], total: number): number[] {
+  const BED = 0.3;
+  const DUCK = 0.12;
+  const anyVo = hasVo.some(Boolean);
+  const target = new Array<number>(total).fill(anyVo ? BED : 0.34);
+  if (anyVo) {
+    let start = 0;
+    durations.forEach((d, i) => {
+      const id = SCENES[i]!.id;
+      for (let f = 0; f < d; f++) if (hasVo[i] && speaking(id, f / FPS) && start + f < total) target[start + f] = DUCK;
+      start += d - XFADE;
+    });
+  }
+  // attack ~0.2 s down, release ~0.6 s up
+  const out = new Array<number>(total);
+  let v = target[0] ?? BED;
+  for (let f = 0; f < total; f++) {
+    const t = target[f]!;
+    v += (t - v) * (t < v ? 0.18 : 0.06);
+    out[f] = v;
+  }
+  return out;
+}
+
 export function Main({ durations, hasVo, music, captions }: MainProps) {
   const { durationInFrames } = useVideoConfig();
-  const anyVo = hasVo.some(Boolean);
-  const base = anyVo ? 0.13 : 0.34;
+  const curve = useMemo(() => musicCurve(durations, hasVo, durationInFrames), [durations, hasVo, durationInFrames]);
   return (
     <AbsoluteFill style={{ background: "#0A0F1E" }}>
       <TransitionSeries>
@@ -69,7 +95,7 @@ export function Main({ durations, hasVo, music, captions }: MainProps) {
         <Audio
           src={staticFile(music)}
           loop
-          volume={(f) => interpolate(f, [0, 45, durationInFrames - 75, durationInFrames - 5], [0, base, base, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })}
+          volume={(f) => (curve[f] ?? 0) * interpolate(f, [0, 45, durationInFrames - 90, durationInFrames - 4], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })}
         />
       )}
       <Finish />

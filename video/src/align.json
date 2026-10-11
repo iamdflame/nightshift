@@ -1,0 +1,741 @@
+{
+ "s1": {
+  "dur": 16.353,
+  "lufsIn": -24.82,
+  "speechStart": 0,
+  "speechEnd": 16.353,
+  "chunks": [
+   {
+    "text": "It's 10 p.m. on a Saturday.",
+    "start": 0,
+    "end": 1.668
+   },
+   {
+    "text": "Wall Street is asleep…",
+    "start": 2.082,
+    "end": 3.334
+   },
+   {
+    "text": "but on BNB Chain, the stock market never closes.",
+    "start": 3.946,
+    "end": 7.14
+   },
+   {
+    "text": "People are still trading NVIDIA.",
+    "start": 7.688,
+    "end": 9.36
+   },
+   {
+    "text": "Lenders are still lending against it.",
+    "start": 9.853,
+    "end": 11.577
+   },
+   {
+    "text": "So here's the question nobody can answer:",
+    "start": 12.121,
+    "end": 14.131
+   },
+   {
+    "text": "what is it actually worth?",
+    "start": 14.636,
+    "end": 16.353
+   }
+  ],
+  "speech": [
+   [
+    0,
+    1.668
+   ],
+   [
+    2.082,
+    3.334
+   ],
+   [
+    3.946,
+    5.182
+   ],
+   [
+    5.396,
+    7.14
+   ],
+   [
+    7.688,
+    9.36
+   ],
+   [
+    9.853,
+    11.577
+   ],
+   [
+    12.121,
+    14.131
+   ],
+   [
+    14.636,
+    16.353
+   ]
+  ]
+ },
+ "s2": {
+  "dur": 24.033,
+  "lufsIn": -24.69,
+  "speechStart": 0,
+  "speechEnd": 23.775,
+  "chunks": [
+   {
+    "text": "A week has 168 hours.",
+    "start": 0,
+    "end": 2.333
+   },
+   {
+    "text": "The US market sets a real price for 32.5 of them.",
+    "start": 2.881,
+    "end": 6.259
+   },
+   {
+    "text": "From Friday's close to Monday's bell, that's 65 hours in the dark…",
+    "start": 6.885,
+    "end": 11.045
+   },
+   {
+    "text": "and 62% of bStocks' July volume traded while US markets were closed.",
+    "start": 11.631,
+    "end": 16.453
+   },
+   {
+    "text": "When the market closes, the reference feeds stop updating.",
+    "start": 17.026,
+    "end": 20.08
+   },
+   {
+    "text": "What's left is each token's own thin weekend trading.",
+    "start": 20.649,
+    "end": 23.775
+   }
+  ],
+  "speech": [
+   [
+    0,
+    2.333
+   ],
+   [
+    2.881,
+    6.259
+   ],
+   [
+    6.885,
+    8.848
+   ],
+   [
+    9.217,
+    11.045
+   ],
+   [
+    11.631,
+    16.453
+   ],
+   [
+    17.026,
+    20.08
+   ],
+   [
+    20.649,
+    23.775
+   ]
+  ]
+ },
+ "s3": {
+  "dur": 17.789,
+  "lufsIn": -24.1,
+  "speechStart": 0,
+  "speechEnd": 17.568,
+  "chunks": [
+   {
+    "text": "So that's what lenders read.",
+    "start": 0,
+    "end": 1.542
+   },
+   {
+    "text": "Ask Venus what NVIDIA is worth tonight, and you get one number:",
+    "start": 2.06,
+    "end": 5.618
+   },
+   {
+    "text": "the token's own trading price.",
+    "start": 6.067,
+    "end": 7.726
+   },
+   {
+    "text": "We checked every dark weekend since June.",
+    "start": 8.319,
+    "end": 10.467
+   },
+   {
+    "text": "That number called Monday's open barely better than Friday's close…",
+    "start": 11.068,
+    "end": 14.626
+   },
+   {
+    "text": "and it comes with NO error bar at all.",
+    "start": 15.215,
+    "end": 17.568
+   }
+  ],
+  "speech": [
+   [
+    0,
+    1.542
+   ],
+   [
+    2.06,
+    4.24
+   ],
+   [
+    4.558,
+    5.618
+   ],
+   [
+    6.067,
+    7.726
+   ],
+   [
+    8.319,
+    10.467
+   ],
+   [
+    11.068,
+    14.626
+   ],
+   [
+    15.215,
+    17.568
+   ]
+  ]
+ },
+ "s4": {
+  "dur": 30.433,
+  "lufsIn": -24.31,
+  "speechStart": 0.216,
+  "speechEnd": 30.226,
+  "chunks": [
+   {
+    "text": "Meet the night shift.",
+    "start": 0.216,
+    "end": 1.436
+   },
+   {
+    "text": "Three forecasters, each with its own on-chain identity.",
+    "start": 1.811,
+    "end": 5.374
+   },
+   {
+    "text": "Anchor holds on to Friday's close.",
+    "start": 5.863,
+    "end": 7.818
+   },
+   {
+    "text": "Echo listens to the live market.",
+    "start": 8.337,
+    "end": 9.973
+   },
+   {
+    "text": "And NFV, our model, reads every signal through the night.",
+    "start": 10.556,
+    "end": 15.033
+   },
+   {
+    "text": "Every 30 minutes, each one seals its forecast for all 91 stocks…",
+    "start": 15.775,
+    "end": 20.133
+   },
+   {
+    "text": "the price at the next open, and a 90% range…",
+    "start": 20.632,
+    "end": 23.449
+   },
+   {
+    "text": "into a contract on BNB Chain.",
+    "start": 23.932,
+    "end": 26.101
+   },
+   {
+    "text": "Once it's sealed, nobody can change it.",
+    "start": 26.66,
+    "end": 29.025
+   },
+   {
+    "text": "Not even us.",
+    "start": 29.378,
+    "end": 30.226
+   }
+  ],
+  "speech": [
+   [
+    0.216,
+    1.436
+   ],
+   [
+    1.811,
+    3.053
+   ],
+   [
+    3.291,
+    5.374
+   ],
+   [
+    5.863,
+    7.818
+   ],
+   [
+    8.337,
+    9.973
+   ],
+   [
+    10.556,
+    12.287
+   ],
+   [
+    12.505,
+    13.13
+   ],
+   [
+    13.453,
+    15.033
+   ],
+   [
+    15.775,
+    20.133
+   ],
+   [
+    20.632,
+    21.866
+   ],
+   [
+    22.128,
+    23.449
+   ],
+   [
+    23.932,
+    26.101
+   ],
+   [
+    26.66,
+    27.608
+   ],
+   [
+    27.884,
+    29.025
+   ],
+   [
+    29.378,
+    30.226
+   ]
+  ]
+ },
+ "s5": {
+  "dur": 17.162,
+  "lufsIn": -24.58,
+  "speechStart": 0,
+  "speechEnd": 16.936,
+  "chunks": [
+   {
+    "text": "And you don't have to trust us.",
+    "start": 0,
+    "end": 1.538
+   },
+   {
+    "text": "Open the verify page.",
+    "start": 1.979,
+    "end": 3.163
+   },
+   {
+    "text": "Your own browser fetches one forecast, rebuilds its proof, and asks the contract directly.",
+    "start": 3.624,
+    "end": 9.224
+   },
+   {
+    "text": "No wallet.",
+    "start": 9.747,
+    "end": 10.334
+   },
+   {
+    "text": "No sign-up.",
+    "start": 10.666,
+    "end": 11.328
+   },
+   {
+    "text": "Change the forecast by a single cent…",
+    "start": 12.008,
+    "end": 14.057
+   },
+   {
+    "text": "and the check fails.",
+    "start": 14.733,
+    "end": 15.773
+   },
+   {
+    "text": "On-chain.",
+    "start": 16.242,
+    "end": 16.936
+   }
+  ],
+  "speech": [
+   [
+    0,
+    1.538
+   ],
+   [
+    1.979,
+    3.163
+   ],
+   [
+    3.624,
+    5.899
+   ],
+   [
+    6.213,
+    7.262
+   ],
+   [
+    7.634,
+    9.224
+   ],
+   [
+    9.747,
+    10.334
+   ],
+   [
+    10.666,
+    11.328
+   ],
+   [
+    12.008,
+    14.057
+   ],
+   [
+    14.733,
+    15.773
+   ],
+   [
+    16.242,
+    16.936
+   ]
+  ]
+ },
+ "s6": {
+  "dur": 25.078,
+  "lufsIn": -24.73,
+  "speechStart": 0,
+  "speechEnd": 24.869,
+  "chunks": [
+   {
+    "text": "Then the bell rings, and reality keeps score.",
+    "start": 0,
+    "end": 2.737
+   },
+   {
+    "text": "At Friday's open, our model missed NVIDIA by 6 basis points, inside its range.",
+    "start": 3.364,
+    "end": 8.304
+   },
+   {
+    "text": "Thursday's close missed by 146.",
+    "start": 8.874,
+    "end": 11.511
+   },
+   {
+    "text": "Across 174 stock openings, only 6 landed below the range a",
+    "start": 12.127,
+    "end": 16.176
+   },
+   {
+    "text": "lender would value collateral at.",
+    "start": 16.176,
+    "end": 18.48
+   },
+   {
+    "text": "And through ERC-8183 jobs, a forecaster is only paid when the",
+    "start": 18.914,
+    "end": 23.344
+   },
+   {
+    "text": "open proves it right.",
+    "start": 23.344,
+    "end": 24.869
+   }
+  ],
+  "speech": [
+   [
+    0,
+    1.14
+   ],
+   [
+    1.352,
+    2.737
+   ],
+   [
+    3.364,
+    7.063
+   ],
+   [
+    7.376,
+    8.304
+   ],
+   [
+    8.874,
+    11.511
+   ],
+   [
+    12.127,
+    14.505
+   ],
+   [
+    14.881,
+    18.48
+   ],
+   [
+    18.914,
+    21.569
+   ],
+   [
+    21.91,
+    24.869
+   ]
+  ]
+ },
+ "s7": {
+  "dur": 15.569,
+  "lufsIn": -24.36,
+  "speechStart": 0,
+  "speechEnd": 15.331,
+  "chunks": [
+   {
+    "text": "And contracts read it.",
+    "start": 0,
+    "end": 1.309
+   },
+   {
+    "text": "At 10 p.m. on a Saturday, we borrowed against NVIDIA on",
+    "start": 2.057,
+    "end": 5.175
+   },
+   {
+    "text": "mainnet, with the collateral valued at the low edge of the range.",
+    "start": 5.175,
+    "end": 8.859
+   },
+   {
+    "text": "The same price ships as Chainlink-compatible feeds, and as an adapter",
+    "start": 9.523,
+    "end": 13.698
+   },
+   {
+    "text": "Venus can plug straight in.",
+    "start": 13.698,
+    "end": 15.331
+   }
+  ],
+  "speech": [
+   [
+    0,
+    1.309
+   ],
+   [
+    2.057,
+    3.622
+   ],
+   [
+    3.913,
+    5.975
+   ],
+   [
+    6.39,
+    8.859
+   ],
+   [
+    9.523,
+    12.344
+   ],
+   [
+    12.666,
+    15.331
+   ]
+  ]
+ },
+ "s8": {
+  "dur": 22.047,
+  "lufsIn": -24.11,
+  "speechStart": 0,
+  "speechEnd": 22.047,
+  "chunks": [
+   {
+    "text": "Every price here starts as a Binance Web3 API call…",
+    "start": 0,
+    "end": 3.553
+   },
+   {
+    "text": "more than 10,000 of them a day.",
+    "start": 4.134,
+    "end": 6.077
+   },
+   {
+    "text": "RWA Data for every stock.",
+    "start": 6.651,
+    "end": 9.417
+   },
+   {
+    "text": "A quote ladder that probes real liquidity around the clock.",
+    "start": 9.857,
+    "end": 13.022
+   },
+   {
+    "text": "MEV protected broadcasts.",
+    "start": 13.571,
+    "end": 15.711
+   },
+   {
+    "text": "And b402 payments.",
+    "start": 16.177,
+    "end": 18.317
+   },
+   {
+    "text": "Every call, and every error, is logged live.",
+    "start": 18.822,
+    "end": 22.047
+   }
+  ],
+  "speech": [
+   [
+    0,
+    3.553
+   ],
+   [
+    4.134,
+    6.077
+   ],
+   [
+    6.651,
+    9.417
+   ],
+   [
+    9.857,
+    13.022
+   ],
+   [
+    13.571,
+    15.711
+   ],
+   [
+    16.177,
+    18.317
+   ],
+   [
+    18.822,
+    19.62
+   ],
+   [
+    19.803,
+    22.047
+   ]
+  ]
+ },
+ "s9": {
+  "dur": 13.871,
+  "lufsIn": -24.64,
+  "speechStart": 0,
+  "speechEnd": 13.667,
+  "chunks": [
+   {
+    "text": "Any agent can use it.",
+    "start": 0,
+    "end": 1.185
+   },
+   {
+    "text": "With a Binance Agentic Wallet and our skill, an agent finds",
+    "start": 1.722,
+    "end": 5.275
+   },
+   {
+    "text": "the cheapest real share, checks it against the range, and only then buys.",
+    "start": 5.275,
+    "end": 9.671
+   },
+   {
+    "text": "It can even pay a cent for each answer, over x402.",
+    "start": 10.149,
+    "end": 13.667
+   }
+  ],
+  "speech": [
+   [
+    0,
+    1.185
+   ],
+   [
+    1.722,
+    4.087
+   ],
+   [
+    4.415,
+    6.622
+   ],
+   [
+    6.98,
+    8.231
+   ],
+   [
+    8.465,
+    9.671
+   ],
+   [
+    10.149,
+    12.166
+   ],
+   [
+    12.462,
+    13.667
+   ]
+  ]
+ },
+ "s10": {
+  "dur": 7.967,
+  "lufsIn": -23.55,
+  "speechStart": 0,
+  "speechEnd": 7.967,
+  "chunks": [
+   {
+    "text": "Wall Street sleeps.",
+    "start": 0,
+    "end": 1.398
+   },
+   {
+    "text": "Nightshift doesn't.",
+    "start": 1.693,
+    "end": 2.786
+   },
+   {
+    "text": "Check any forecast yourself, at nightshift-oracle.vercel.app.",
+    "start": 3.105,
+    "end": 7.967
+   }
+  ],
+  "speech": [
+   [
+    0,
+    1.398
+   ],
+   [
+    1.693,
+    2.786
+   ],
+   [
+    3.105,
+    4.693
+   ],
+   [
+    4.896,
+    7.967
+   ]
+  ]
+ }
+}

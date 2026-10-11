@@ -2,6 +2,7 @@ import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } fr
 import data from "../data.json";
 import { Owl, type OwlKind } from "../components/Owl";
 import { Broll, Card, Counter, Kicker, Kinetic, Mono, Night, Rise, Screen, Tag, usd, useIn } from "../components/ui";
+import { cue } from "../cues";
 import { C, F } from "../theme";
 import { Shot } from "./Act1";
 
@@ -75,8 +76,9 @@ function Vault({ glow }: { glow: number }) {
 export function S4({ dur }: { dur: number }) {
   const f = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const sealAt = at(dur, 0.42);
-  const lockAt = at(dur, 0.8);
+  const sealAt = cue("s4", "Every 30 minutes", dur, 0.42) + 20;
+  const lockAt = cue("s4", "Once it's sealed", dur, 0.8) - 4;
+  const named = [cue("s4", "Anchor holds", dur, 0.2) - 8, cue("s4", "Echo listens", dur, 0.27) - 8, cue("s4", "And NFV", dur, 0.34) - 8];
   const xs = [520, 960, 1400];
   const glow = interpolate(f, [sealAt + 40, sealAt + 60, sealAt + 75], [0, 1, 0.4], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   return (
@@ -92,9 +94,9 @@ export function S4({ dur }: { dur: number }) {
         </div>
       )}
       {OWLS.map((o, i) => {
-        const enter = spring({ frame: f - 30 - i * 14, fps, config: { damping: 13, stiffness: 120 } });
+        const enter = spring({ frame: f - named[i]!, fps, config: { damping: 13, stiffness: 120 } });
         const fly = interpolate(f, [sealAt + i * 8, sealAt + 36 + i * 8], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-        const holding = f > sealAt - 90 && fly < 1;
+        const holding = f > sealAt - 60 && fly < 1;
         // envelope flight from the owl to the vault
         const ex = interpolate(fly, [0, 1], [xs[i]!, 960]);
         const ey = interpolate(fly, [0, 0.5, 1], [690, 520, 420]);
@@ -146,14 +148,14 @@ export function S4({ dur }: { dur: number }) {
 
 // ── S5 · Don't trust us ─────────────────────────────────────────────────────────────────────────
 export function S5({ dur }: { dur: number }) {
-  const a = at(dur, 0.6);
+  const a = cue("s5", "Change the forecast by a single cent", dur, 0.6) - 10;
   return (
     <AbsoluteFill style={{ background: C.night0 }}>
       <Night seed={11} />
       <Shot from={0} to={a + 8} fadeIn={0}>
         <Screen src="capture/verify.mp4" from={60} small url="nightshift-oracle.vercel.app/verify" focus={[[0, 1.0, 50, 30], [Math.round(a * 0.45), 1.22, 62, 38], [a, 1.3, 62, 55]]} />
         <div style={{ position: "absolute", left: 180, top: 34 }}>
-          <Rise at={10}>
+          <Rise at={cue("s5", "No wallet", dur, 0.4)}>
             <Tag color={C.up} size={26}>
               No wallet. No sign-up. Your browser asks the contract.
             </Tag>
@@ -190,9 +192,10 @@ function BellRings({ start }: { start: number }) {
 
 export function S6({ dur }: { dur: number }) {
   const f = useCurrentFrame();
-  const a = at(dur, 0.2);
-  const b = at(dur, 0.6);
-  const c = at(dur, 0.8);
+  const a = cue("s6", "At Friday's open", dur, 0.2) - 6;
+  const b = cue("s6", "Across 174", dur, 0.6) - 6;
+  const c = cue("s6", "And through ERC-8183", dur, 0.8) - 6;
+  const thursday = cue("s6", "Thursday's close", dur, 0.4);
   const bell = data.bell;
   const rows = ["nfv", "echo", "anchor"].map((k) => bell.lastCommits.find((x) => x.f === k)!);
   const maxErr = Math.max(...rows.map((r) => Math.abs(r.errBps)));
@@ -205,15 +208,15 @@ export function S6({ dur }: { dur: number }) {
     <AbsoluteFill style={{ background: C.night0 }}>
       <Shot from={0} to={a + 8} fadeIn={0}>
         <Broll src="broll/hd/clock.mp4" from={30} zoom={[1.0, 1.15]} scrim={0.3} />
-        <BellRings start={Math.round(a * 0.35)} />
+        <BellRings start={18} />
         <AbsoluteFill style={{ background: "linear-gradient(180deg, transparent 45%, rgba(10,15,30,0.92) 78%)" }} />
         <AbsoluteFill style={{ alignItems: "center", justifyContent: "flex-end", paddingBottom: 150 }}>
-          <Rise at={Math.round(a * 0.3)}>
+          <Rise at={12}>
             <Mono size={120} color={C.sodium} style={{ fontWeight: 300 }}>
               09:30 ET
             </Mono>
           </Rise>
-          <Rise at={Math.round(a * 0.5)}>
+          <Rise at={44}>
             <div style={{ fontFamily: F.display, fontSize: 60, color: C.moon0, marginTop: 10 }}>The bell. Reality keeps score.</div>
           </Rise>
         </AbsoluteFill>
@@ -229,7 +232,9 @@ export function S6({ dur }: { dur: number }) {
           </Rise>
           <div style={{ marginTop: 50, display: "grid", gap: 30 }}>
             {rows.map((r, i) => {
-              const w = interpolate(f - a, [20 + i * 10, 50 + i * 10], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+              // NFV and Echo land with "At Friday's open…", the anchor with "Thursday's close missed by 146".
+              const startRow = i < 2 ? 24 + i * 12 : thursday - a;
+              const w = interpolate(f - a, [startRow, startRow + 26], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
               return (
                 <div key={r.f} style={{ display: "flex", alignItems: "center", gap: 26 }}>
                   <div style={{ width: 120, height: 120, overflow: "visible" }}>
