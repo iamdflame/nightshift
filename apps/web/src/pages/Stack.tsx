@@ -25,6 +25,8 @@ const MODULES: { key: string; name: string; use: string; unexpected: string; ref
     name: "Trading",
     use: "Quotes, approvals and swaps through the aggregator (and RFQ for Ondo).",
     unexpected: "A $100 / $1k / $10k quote ladder on every token around the clock: a probe of the price you can actually execute at 3 a.m., and how deep the book is. RFQ refusals tell us when an issuer's market is closed.",
+    refused:
+      "A $100 / $1k / $10k quote ladder on every token, every 10 minutes: a probe of the price you can actually execute at 3 a.m. Binance refuses tokenized-stock quotes to our production server too (40304); the successful quotes and our real swaps counted here ran from our development machine.",
   },
   {
     key: "transaction",
@@ -47,9 +49,9 @@ function Status({ calls24h, callsAll, refusedWith }: { calls24h: number; callsAl
   const [label, cls] = refusedWith
     ? [`Refused to our server (${refusedWith})`, "bg-down/15 text-down"]
     : calls24h > 0
-      ? ["In production now", "bg-up/15 text-up"]
+      ? ["Called in the last 24 h", "bg-up/15 text-up"]
       : callsAll > 0
-        ? ["Called in production", "bg-night-3 text-moon-1"]
+        ? ["Called before", "bg-night-3 text-moon-1"]
         : ["Covered by our SDK", "bg-night-3 text-moon-2"];
   return <span className={`whitespace-nowrap rounded-md px-2 py-0.5 text-[12px] font-medium ${cls}`}>{label}</span>;
 }

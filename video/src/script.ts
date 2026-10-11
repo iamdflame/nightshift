@@ -40,8 +40,11 @@ export const SCENES = [
   },
   {
     id: "s8",
-    estimate: 19,
-    vo: "Every price here starts as a Binance Web3 API call... more than ten thousand of them a day. R-W-A Data for every stock. A quote ladder that probes real liquidity around the clock. M-E-V protected broadcasts. And b-four-oh-two payments. Every call, and every error, is logged live.",
+    estimate: 7,
+    // Only the last sentence of the recorded take (the original is public/vo-original/s8.mp3). The rest claimed every
+    // price starts as a Web3 API call and a round-the-clock quote ladder, but the oracle prices from Binance spot books and
+    // BSC pools, and Binance refuses tokenized-stock data to our EU West server. A 2.5 s lead lets the counter roll.
+    vo: "Every call, and every error, is logged live.",
   },
   {
     id: "s9",

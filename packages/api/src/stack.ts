@@ -16,8 +16,8 @@ export interface CodeNote {
 
 /** Envelope success codes: OCResult uses 0, the B402 facilitator "000000000". */
 export const OK_CODES = new Set(["0", "000000000"]);
-/** Compliance codes (403xx: region, VPN, IP, restriction): Binance declining to serve the caller's jurisdiction. */
-export const COMPLIANCE = /^403\d\d$/;
+/** A compliance code in the SDK's catalog (region, VPN, IP, restriction, KYT): Binance declining to serve the caller. */
+export const isCompliance = (code: string, module: string): boolean => /^\d+$/.test(code) && describeCode(code, module as ModuleName)?.kind === "compliance";
 
 const RATE_LIMIT: CodeNote = {
   meaning: "Rate limited.",

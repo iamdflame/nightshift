@@ -92,8 +92,8 @@ export default function Scoreboard() {
         <p className="text-[14px] font-medium text-sodium/90">Scoreboard</p>
         <h1 className="mt-3 text-[clamp(2.6rem,5vw,4.4rem)] font-[300]">The open grades every forecaster.</h1>
         <p className="mt-4 max-w-[62ch] text-[17px] text-moon-2">
-          Each forecast is scored against the official US open with CRPS, a standard score for probabilistic forecasts: it rewards being right and being honest about uncertainty. Anchor is today's oracle, the last close,
-          kept in so everyone can see what beating it means.
+          Each forecast is scored against the official US open with CRPS, a standard score for probabilistic forecasts: it rewards being right and being honest about uncertainty. Anchor is the last close held to the open,
+          what an equity feed that stops at the close reports. Echo is the token's own price, which is what Venus reads for bStocks today. Both stay in so everyone can see what beating them means.
         </p>
       </header>
 
@@ -104,7 +104,7 @@ export default function Scoreboard() {
       </div>
       <p className="mt-4 text-[13px] text-moon-3">
         {oc && oc.jobs.length === 0
-          ? "Payment: an ERC-8183 job pays a forecaster only when it beats the anchor (Friday's close held to the bell) on an open. The first jobs open once the escrow is funded; nothing has been paid yet."
+          ? "Payment, as built: an ERC-8183 job pays a forecaster only when it beats the anchor (the last close held to the bell) on an open. Jobs open once the escrow holds U, the stablecoin BNB's commerce contracts settle in; it holds none yet, so nothing has been paid."
           : `${oc?.jobs.length ?? 0} ERC-8183 jobs on-chain.`}
       </p>
 

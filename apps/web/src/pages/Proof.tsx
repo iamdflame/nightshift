@@ -171,6 +171,9 @@ export default function Proof() {
               Show more ({shown.length - limit} left)
             </button>
           )}
+          <p className="mt-4 text-[13px] text-moon-3">
+            This log holds the latest {new Set(oc?.recentCommits.map((c) => c.round)).size} rounds of seals. Every round since the first seal is in the ledger on <Link className="underline underline-offset-4 hover:text-moon-1" to="/verify">/verify</Link>.
+          </p>
         </section>
 
         <aside className="grid h-fit gap-8">

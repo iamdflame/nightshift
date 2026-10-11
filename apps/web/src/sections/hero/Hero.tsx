@@ -104,7 +104,7 @@ function LiveCard() {
         </div>
         <div>
           <p className="text-moon-3">Sealed on BNB Chain</p>
-          <p className="num mt-0.5 text-[15px] text-moon-0">{sealed.reduce((a, s) => a + s.rounds, 0) || "–"} forecasts</p>
+          <p className="num mt-0.5 text-[15px] text-moon-0">{sealed.reduce((a, s) => a + s.rounds, 0) || "–"} seals × 91 stocks</p>
         </div>
       </div>
       <div className="mt-4 flex flex-wrap items-center justify-between gap-2">

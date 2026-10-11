@@ -8,7 +8,7 @@ import { BSC, hoursToOpen, lastRegularClose, nextRegularOpen, sessionAt } from "
 import { MerkleTree, scoreboard } from "@nightshift/network";
 import { ENDPOINTS } from "@nightshift/sdk";
 import { DEFAULT_DB_PATH } from "@nightshift/tape";
-import { COMPLIANCE, noteFor, OK_CODES } from "./stack.ts";
+import { isCompliance, noteFor, OK_CODES } from "./stack.ts";
 
 export interface ConsensusRow {
   round: number;
@@ -488,8 +488,8 @@ export class Queries {
        GROUP BY module, endpoint, method`;
     type Lat = Row & { p50: number; p95: number };
     const recent = all<Lat>(latencySql("ts >= ?"), day);
-    // What Binance answered most recently, per endpoint: a module whose every endpoint now gets a compliance code is
-    // refused to this host, whatever its earlier traffic says.
+    // What Binance answered most recently, per endpoint. A module whose most recent call got a compliance code is
+    // refused to this host, whatever its earlier traffic (or an endpoint it seldom calls) says.
     const latest = all<Row & { code: string }>(
       `SELECT module, endpoint, method, code FROM (
          SELECT module, endpoint, method, COALESCE(api_code, 'HTTP ' || http_status, error_kind, 'unknown') code,
@@ -558,7 +558,8 @@ export class Queries {
     const modules = names.map((module) => {
       const endpoints = [...eps.values()].filter((e) => e.module === module).sort((a, b) => b.callsAll - a.callsAll || a.endpoint.localeCompare(b.endpoint));
       const lastAt = Math.max(0, ...endpoints.map((e) => e.lastAt ?? 0));
-      const refusedWith = endpoints.length > 0 && endpoints.every((e) => e.lastCode != null && COMPLIANCE.test(e.lastCode)) ? endpoints[0]!.lastCode : null;
+      const newest = endpoints.reduce<(typeof endpoints)[number] | null>((a, e) => ((e.lastAt ?? 0) > (a?.lastAt ?? 0) ? e : a), null);
+      const refusedWith = newest?.lastCode != null && isCompliance(newest.lastCode, module) ? newest.lastCode : null;
       return {
         module,
         refusedWith,

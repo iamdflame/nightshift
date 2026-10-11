@@ -107,7 +107,7 @@ export function S7({ dur }: { dur: number }) {
 // ── S8 · Built on Binance Web3 ──────────────────────────────────────────────────────────────────
 const MODULE_NAME: Record<string, string> = { rwa: "RWA Data", trading: "Trading", transaction: "Transaction", b402: "b402 payments" };
 export function S8({ dur }: { dur: number }) {
-  const a = cue("s8", "RWA Data for every stock", dur, 0.48) - 6;
+  const a = cue("s8", "Every call", dur, 0.45) + 24;
   return (
     <AbsoluteFill style={{ background: C.night0 }}>
       <Shot from={0} to={a + 8} fadeIn={0}>
@@ -122,15 +122,15 @@ export function S8({ dur }: { dur: number }) {
           </Rise>
           <div style={{ display: "flex", gap: 18, marginTop: 44, flexWrap: "wrap", justifyContent: "center", maxWidth: 1500 }}>
             {data.stack.modules.map((m, i) => (
-              <Rise key={m.module} at={34 + i * 8}>
+              <Rise key={m.module} at={30 + i * 6}>
                 <Tag color={C.sodium} size={28}>
                   {MODULE_NAME[m.module] ?? m.module} <Mono size={24} color={C.moon2}>{m.calls24h.toLocaleString("en-US")}</Mono>
                 </Tag>
               </Rise>
             ))}
           </div>
-          <Rise at={70} style={{ marginTop: 34 }}>
-            <span style={{ fontFamily: F.sans, fontSize: 28, color: C.moon2 }}>A $100 / $1k / $10k quote ladder on every token, around the clock: a live probe of real liquidity.</span>
+          <Rise at={52} style={{ marginTop: 34 }}>
+            <span style={{ fontFamily: F.sans, fontSize: 28, color: C.moon2 }}>Quotes, swaps, MEV-protected broadcasts, b402 payments: every call and every outcome code, logged by our own SDK.</span>
           </Rise>
         </AbsoluteFill>
       </Shot>

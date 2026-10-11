@@ -2,8 +2,8 @@
 
 Every price on BNB Chain tells you what a tokenized stock trades at right now. Nightshift tells a lender where it will open, and how far it can gap: a fair value and a 90% band for the next US open, for all 91 bStocks, around the clock.
 
-- Three forecasters (Friday's close held to the bell, the token's live price, and our NFV model) seal a Merkle root of every forecast on BNB Chain every 30 minutes, before the bell.
-- The official open scores them. ERC-8183 jobs on BNB's commerce contracts pay a forecaster only if it beat the no-skill baseline on that open.
+- Three forecasters (the last close held to the bell, the token's live price, and our NFV model) seal a Merkle root of every forecast on BNB Chain every 30 minutes, before the bell.
+- The official open scores them. ERC-8183 jobs on BNB's commerce contracts are built to pay a forecaster only if it beat the no-skill baseline on that open (deployed; none funded yet, so nothing has been paid).
 - Their weighted consensus is published on-chain, where contracts read it: our credit vault lends against NVDAB at the band's lower edge, through six Chainlink-compatible feeds and a Venus `OracleInterface` adapter.
 
 **Live site: [nightshift-oracle.vercel.app](https://nightshift-oracle.vercel.app)**. It shows the night sky over Wall Street right now, the 91 bStocks priced for the next open, and every forecast sealed on BNB Chain. You can check any of them from your browser at [/verify](https://nightshift-oracle.vercel.app/verify).
@@ -13,9 +13,9 @@ Every price on BNB Chain tells you what a tokenized stock trades at right now. N
 ### Three facts, if you read nothing else
 
 1. **It's live on BSC mainnet.** Forecast commitments, oracle reports and a loan against NVIDIA taken at 10 p.m. on a Saturday (New York time) are on-chain. Every contract and transaction is linked from **[docs/LIVE.md](docs/LIVE.md)**, which is generated from the chain records.
-2. **It's measured, not claimed, against both baselines.** In a leave-one-gap-out backtest (70 gaps, 60,794 forecasts) the error is **22% lower than Friday's close** held to the bell, and **1% lower than the token's own price**: most of the point gain is reading the 24/7 market at all. What the model adds is the **band** (89% coverage overall, 87% on fully dark weekends, against a 90% target). On the live opens of Oct 8 and Oct 9, scored automatically, the error was 49% and 31% below Friday's close (those two were scored off-chain; on-chain sealing started the evening of Oct 9, so Monday Oct 12 is the first fully sealed open).
+2. **It's measured, not claimed, against both baselines.** In a leave-one-gap-out backtest (70 gaps, 60,794 forecasts) the error is **22% lower than the last close** held to the open (across all gaps, mostly weekday overnights), and **1% lower than the token's own price**: most of the point gain is reading the 24/7 market at all. On fully dark weekends the gains shrink to 3% and 2%. What the model adds is the **band** (89% coverage overall, 87% on fully dark weekends, against a 90% target). On the live opens of Oct 8 and Oct 9, scored automatically, the error was 49% and 31% below the previous close (those two were scored off-chain; on-chain sealing started the evening of Oct 9, so Monday Oct 12 is the first fully sealed open).
 3. **It's built on the sponsor stack end to end:**
-   - the Binance Web3 API through our own SDK (all 65 endpoints typed; RWA Data, Trading, Transaction and b402 in production, with live telemetry at [/stack](https://nightshift-oracle.vercel.app/stack));
+   - the Binance Web3 API through our own SDK (all 65 endpoints typed; RWA Data, Trading, Transaction and b402 called, with live telemetry at [/stack](https://nightshift-oracle.vercel.app/stack)). Binance refuses RWA Data and tokenized-stock quotes to our production server in EU West (40304, compliance restriction), so their successful calls and our real swaps ran from our development machine; b402 runs in production;
    - a Wallet Skill for the Agentic Wallet (`baw` orders, x402);
    - an Agent Studio seller agent;
    - ERC-8004 identities and ERC-8183 jobs on BNB's own contracts.
@@ -63,12 +63,12 @@ flowchart LR
 ```
 
 1. **Forecast.** Every 30 minutes, three forecasters (each with an ERC-8004 identity) predict every bStock's next official open as a distribution, not a point:
-   - `anchor`: today's oracle, the last close;
-   - `echo`: the live on-chain price;
+   - `anchor`: the last close held to the open, what an equity feed that stops at the close reports;
+   - `echo`: the token's live price (what Venus reads for bStocks today);
    - `nfv`: our model.
 2. **Commit.** Each forecaster commits a Merkle root of its forecasts to `ForecastBook` before the open. Nobody, including us, can change a forecast after the fact.
 3. **Score and pay.** At the open, the Scorer grades every forecast with CRPS, a standard score for probabilistic forecasts. ERC-8183 jobs on BNB's commerce, router and policy contracts escrow the forecasters' pay in U:
-   - a forecaster is paid only if it beat the no-skill baseline (Friday's close held to the bell) on that open;
+   - a forecaster is paid only if it beat the no-skill baseline (the last close held to the bell) on that open;
    - otherwise the Scorer disputes, with the score report's hash as evidence.
 4. **Publish.** The reputation-weighted consensus goes to `NightshiftOracle` as a fair value plus a 90% band for the next open.
    - Tokens that contracts consume are posted every round.
@@ -121,7 +121,9 @@ Two findings we didn't expect:
 
 ## Known limits
 
-- **The point gain over the market is small.** Against Friday's close NFV is far better; against the token's own price it is about 1% better (−2% on dark weekends, +0.4% worse at the Sunday-night restart). The value in the dark is the calibrated band, which is what a lender needs.
+- **The point gain over the market is small.** Against the last close NFV is far better (22% overall, 3% on fully dark weekends); against the token's own price it is about 1% better (−2% on dark weekends, +0.4% worse at the Sunday-night restart). The value in the dark is the calibrated band, which is what a lender needs.
+- **Binance refuses our production server the tokenized-stock endpoints.** From Railway's EU West region, RWA Data and Trading quotes for bStocks return 40304 (compliance restriction); the same keys work from our development machine. We don't route around it. The oracle prices from Binance spot books and BSC pools, which production reaches.
+- **One gap in the seal record.** Five rounds were missed on Fri Oct 9, 7:30 to 10:30 p.m. ET. Every 30-minute round since then is sealed. Each restart also seals one extra round at startup, so a few rounds sit off the half-hour.
 - **One reporter key.** The consensus is computed off-chain from the sealed forecasts and posted by the Scorer's key, which also owns the oracle. Each forecast is verifiable against its root; the consensus itself is not yet recomputable on-chain.
 - **The bands undercover slightly.** That's 86.6% in the weekend-dark backtest and 85.2% on the Oct 9 open, against a 90% target. They are refit as live opens are scored.
 - **No forecaster has been paid yet.** Scores are published every open; ERC-8183 jobs start once the escrow is funded with U.
@@ -135,10 +137,10 @@ Live call counts, latency and every outcome code for each module: **[/stack](htt
 
 | Module | In production? | Use | Unexpected use |
 |---|---|---|---|
-| RWA Data | yes (`/rwa/price`, `/rwa/underlying-market`) | prices for all 91 bStocks; session status, reference price, `tokenToShareRatio`, corporate actions | issuer-agnostic per-share pricing; corporate-action flags inside every oracle report |
-| Trading | yes (`/aggregator/quote`, `approve-transaction`, `swap`; RFQ) | quotes and our swaps | a $100 / $1k / $10k quote ladder on every token around the clock: a 24/7 probe of executable price and depth; RFQ refusals as a session signal |
-| Transaction | yes (`broadcast-transaction`) | broadcast with MEV protection | every broadcast becomes a receipt priced per real share against fair value |
-| b402 | yes: `GET /x402/fair-value/{symbol}` is live, $0.01 in U, USD1 or USDT, settled by the B402 facilitator | pay-per-query fair value | an Agentic Wallet pays an oracle (`scripts/x402-buy.mjs`) |
+| RWA Data | called every 30 min; **refused to our EU West server** (40304, compliance restriction). 5,000+ successful calls from our development machine | token prices; session status, reference price, `tokenToShareRatio` | sizes the quote ladder's sell side (production falls back to BSC pool prices) |
+| Trading | quotes every 10 min, **refused to our EU West server** for tokenized stocks (40304); 2,174 successful quotes and our 2 swaps from our development machine | quotes and our swaps | a $100 / $1k / $10k quote ladder on every token around the clock: a 24/7 probe of executable price and depth; RFQ refusals as a session signal |
+| Transaction | used for our trades (`broadcast-transaction`, 4 calls) | broadcast with MEV protection | every broadcast becomes a receipt priced per real share against fair value |
+| b402 | in production: `GET /x402/fair-value/{symbol}` answers 402 with $0.01 in U, USD1 or USDT, settled by the B402 facilitator; no payment settled yet | pay-per-query fair value | an Agentic Wallet pays an oracle (`scripts/x402-buy.mjs`) |
 | Market, Wallet, DeFi | SDK only (typed, tested) | not called by the running engine, which reads candles and books from Binance spot and pools from DexScreener | – |
 | Agentic Wallet + Skills | yes (a real `baw` buy with its receipt) | `baw` orders, x402 payment | a skill that turns "buy NVIDIA" into the cheapest real share, checked against the band |
 | Agent Studio / `@bnbagent/sdk` | yes (5 ERC-8004 identities; ERC-8183 jobs once funded) | ERC-8004 identities, ERC-8183 jobs | a pay-for-accuracy forecasting market with an independent scorer |

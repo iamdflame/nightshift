@@ -135,7 +135,7 @@ const STEPS = [
   { t: "Commit", d: "Every 30 minutes, each agent seals a Merkle root of its forecasts for all 91 stocks into ForecastBook on BNB Chain." },
   { t: "Seal", d: "Once a root is on-chain, no one can change a forecast after the fact. Not the agents, not us. Any single forecast can be checked against it." },
   { t: "Bell", d: "The official US open is the only judge. It arrives whether anyone likes the forecast or not." },
-  { t: "Score and pay", d: "Every forecast gets a CRPS score against the open. An ERC-8183 job on BNB's own commerce contracts pays a forecaster only if it beat the no-skill baseline, Friday's close held to the bell." },
+  { t: "Score and pay", d: "Every forecast gets a CRPS score against the open. An ERC-8183 job on BNB's own commerce contracts pays a forecaster only if it beat the no-skill baseline, the last close held to the bell." },
 ];
 
 export default function HowItWorks() {

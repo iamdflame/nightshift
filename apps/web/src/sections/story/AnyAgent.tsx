@@ -73,7 +73,7 @@ export default function AnyAgent() {
       <div className="mx-auto grid max-w-[1320px] gap-16 px-4 sm:px-6 lg:grid-cols-[1.1fr_1fr] lg:items-center">
         <div>
           <Heading id="agent-title" kicker="For the Binance Agentic Wallet" title="Any agent can use it, and prove what it paid.">
-            The Nightshift Wallet Skill turns "buy NVIDIA" into the cheapest real share at fair value. It checks the band, then trades with the Agentic Wallet. Afterwards anyone can rebuild the trade from the chain
+            The Nightshift Wallet Skill turns "buy NVIDIA" into the cheapest real share, checks the price against Nightshift's band, and only then trades with the Agentic Wallet. Afterwards anyone can rebuild the trade from the chain
             and see exactly what it cost against fair value.
           </Heading>
           <div className="mt-10 grid gap-4">
@@ -93,7 +93,7 @@ export default function AnyAgent() {
                 <p className="text-[14px] font-medium text-moon-0">Pay per query over x402</p>
                 <p className="mt-0.5 text-[13.5px] text-moon-2">
                   {live
-                    ? `The full report costs ${x?.priceUsd} USD, settled by Binance B402 into the treasury that pays the oracle's gas.`
+                    ? `The full report costs ${x?.priceUsd} USD, settled by Binance B402 into the treasury that pays the oracle's gas. The endpoint answers 402 today; no payment has settled yet.`
                     : "Pay-per-query (0.01 USD, settled by Binance B402) switches on once the facilitator approves our merchant account. The endpoint is built and tested."}
                 </p>
               </div>

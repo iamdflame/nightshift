@@ -58,7 +58,7 @@ describe("Queries.stack", () => {
     expect(s.notSent.total).toBe(1);
   });
 
-  it("marks a module refused when every endpoint's latest answer is a compliance code, whatever came before", () => {
+  it("marks a module refused when its most recent call got a compliance code, whatever came before", () => {
     const s = q.stack(NOW);
     const rwa = s.modules.find((m) => m.module === "rwa")!;
     expect(rwa).toMatchObject({ refusedWith: "40304" });
