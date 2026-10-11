@@ -35,6 +35,10 @@ export class Queries {
     this.db = new DatabaseSync(path, { readOnly: true });
   }
 
+  close(): void {
+    this.db.close();
+  }
+
   status() {
     const now = Date.now();
     const round = this.latestRound();
@@ -296,6 +300,167 @@ export class Queries {
     };
   }
 
+  /**
+   * One token's recent history for the forecast fan: consensus per round (fair value + band aimed at
+   * that round's anchor), the nfv view of the token price and last close, hourly CEX closes, and every
+   * forecaster's commit for the next open (with its on-chain status and tx).
+   */
+  history(key: string, hours = 72) {
+    const inst = this.db
+      .prepare(`SELECT address, symbol, cex_symbol FROM instruments WHERE chain_id = '56' AND (lower(symbol) = lower(?1) OR address = lower(?1)) ORDER BY issuer = 'bstocks' DESC LIMIT 1`)
+      .get(key) as { address: string; symbol: string; cex_symbol: string | null } | undefined;
+    if (!inst) return null;
+    const since = Date.now() - Math.min(Math.max(hours, 1), 24 * 14) * 3600_000;
+    const points = (
+      this.db
+        .prepare(
+          `SELECT c.round, c.computed_at t, c.session, c.state, c.anchor_time, c.fair_value, c.lower, c.upper, c.chain_status, c.tx_hash,
+                  f.token_price, f.last_close * f.basis AS last_close_tok
+           FROM consensus c LEFT JOIN forecasts f ON f.round = c.round AND f.token = c.token AND f.forecaster = 'nfv'
+           WHERE c.token = ? AND c.computed_at >= ? ORDER BY c.round`,
+        )
+        .all(inst.address, since) as Record<string, number | string | null>[]
+    ).map((r) => ({
+      round: r.round as number,
+      t: r.t as number,
+      session: r.session as string,
+      state: r.state as string,
+      anchorTime: r.anchor_time as number,
+      fairValue: num(r.fair_value as number),
+      lower: num(r.lower as number),
+      upper: num(r.upper as number),
+      tokenPrice: r.token_price == null ? null : num(r.token_price as number),
+      lastClose: r.last_close_tok == null ? null : num(r.last_close_tok as number),
+      chainStatus: r.chain_status as string,
+      tx: (r.tx_hash as string | null) ?? null,
+    }));
+    const klines = inst.cex_symbol
+      ? (this.db.prepare(`SELECT open_time t, close FROM klines WHERE symbol = ? AND interval = '1h' AND open_time >= ? ORDER BY open_time`).all(inst.cex_symbol, since) as {
+          t: number;
+          close: number;
+        }[])
+      : [];
+    const nextAnchor = nextRegularOpen(Date.now());
+    const commits = (
+      this.db
+        .prepare(
+          `SELECT f.round, r.ts t, f.forecaster, f.fair_value, f.lower, f.upper, c.chain_status, c.tx_hash
+           FROM forecasts f JOIN rounds r ON r.round = f.round LEFT JOIN commitments c ON c.round = f.round AND c.forecaster = f.forecaster
+           WHERE f.token = ? AND f.anchor_time = ? ORDER BY f.round`,
+        )
+        .all(inst.address, nextAnchor) as Record<string, number | string | null>[]
+    ).map((r) => ({
+      round: r.round as number,
+      t: r.t as number,
+      forecaster: r.forecaster as string,
+      fairValue: num(r.fair_value as number),
+      lower: num(r.lower as number),
+      upper: num(r.upper as number),
+      chain: (r.chain_status as string | null) ?? "local",
+      tx: (r.tx_hash as string | null) ?? null,
+    }));
+    return { token: inst.address, symbol: inst.symbol, nextAnchor, points, klines, commits };
+  }
+
+  /** Everything on BSC mainnet, as JSON (the same facts as docs/LIVE.md): contracts, agents, commits, posts, loan, trades, jobs, scores. */
+  onchain() {
+    const read = <T>(p: string): T | null => (existsSync(p) ? (JSON.parse(readFileSync(p, "utf8")) as T) : null);
+    const dep = read<Record<string, unknown> & { feeds?: Record<string, string>; block?: number }>("deployments/56.json");
+    const agentsFile = read<Record<string, { agentId: number | null; address: string; tx: string }>>("deployments/agents.json") ?? {};
+    const names: Record<string, string> = { treasury: "Nightshift Scorer", anchor: "Forecaster: Anchor", echo: "Forecaster: Echo", nfv: "Forecaster: NFV", executor: "Nightshift Trade" };
+    const sym = new Map((this.db.prepare(`SELECT lower(address) a, symbol FROM instruments WHERE chain_id = '56'`).all() as { a: string; symbol: string }[]).map((r) => [r.a, r.symbol]));
+    const roles: Record<string, string> = {
+      ForecastBook: "Forecasters commit a Merkle root of every forecast before the open",
+      NightshiftOracle: "Consensus fair value + 90% next-open band per token",
+      NightshiftCredit: "Borrow USDT against bStocks 24/7, valued at the band's lower edge",
+      NightshiftVenusOracle: "Venus OracleInterface adapter over the same reports",
+    };
+    const has = (t: string) => Boolean(this.db.prepare(`SELECT 1 FROM sqlite_master WHERE type='table' AND name=?`).get(t));
+    const posts = this.db.prepare(`SELECT COUNT(DISTINCT tx_hash) txs, COUNT(*) reports FROM consensus WHERE chain_status = 'posted'`).get() as { txs: number; reports: number };
+    const latest = this.db
+      .prepare(
+        `SELECT c.symbol, c.round, c.fair_value, c.lower, c.upper, c.computed_at, c.tx_hash FROM consensus c
+         JOIN (SELECT token, MAX(round) r FROM consensus WHERE chain_status = 'posted' GROUP BY token) m ON m.token = c.token AND m.r = c.round
+         ORDER BY c.computed_at DESC, c.symbol LIMIT 24`,
+      )
+      .all() as Record<string, number | string>[];
+    return {
+      chainId: 56 as const,
+      deployBlock: (dep?.block as number | undefined) ?? null,
+      contracts: dep ? Object.entries(roles).filter(([k]) => typeof dep[k] === "string").map(([k, role]) => ({ name: k, address: dep[k] as string, role })) : [],
+      feeds: Object.entries(dep?.feeds ?? {}).map(([token, feed]) => ({ token, symbol: sym.get(token.toLowerCase()) ?? token, feed })),
+      agents: Object.entries(agentsFile).map(([role, a]) => ({ role, name: names[role] ?? role, agentId: a.agentId, address: a.address, tx: a.tx })),
+      commitments: (
+        this.db
+          // lastTx is the commit tx of the group's newest round (MAX(tx_hash) would be the lexicographically largest hash).
+          .prepare(
+            `SELECT c.anchor_time, c.forecaster, COUNT(*) n, MIN(c.round) r0, MAX(c.round) r1,
+                    (SELECT l.tx_hash FROM commitments l
+                     WHERE l.anchor_time = c.anchor_time AND l.forecaster = c.forecaster AND l.chain_status = 'committed' AND l.tx_hash IS NOT NULL
+                     ORDER BY l.round DESC LIMIT 1) last
+             FROM commitments c WHERE c.chain_status = 'committed' GROUP BY c.anchor_time, c.forecaster ORDER BY c.anchor_time DESC, c.forecaster`,
+          )
+          .all() as Record<string, number | string>[]
+      ).map((r) => ({ anchorTime: r.anchor_time as number, forecaster: r.forecaster as string, rounds: r.n as number, firstRound: r.r0 as number, lastRound: r.r1 as number, lastTx: (r.last as string) ?? null })),
+      recentCommits: (
+        this.db
+          .prepare(`SELECT c.round, c.forecaster, c.tx_hash, c.anchor_time, COALESCE(r.ts, c.round * 60000) t FROM commitments c LEFT JOIN rounds r ON r.round = c.round WHERE c.chain_status = 'committed' AND c.tx_hash IS NOT NULL ORDER BY c.round DESC, c.forecaster LIMIT 120`)
+          .all() as Record<string, number | string>[]
+      ).map((r) => ({ round: r.round as number, t: r.t as number, forecaster: r.forecaster as string, tx: r.tx_hash as string, anchorTime: r.anchor_time as number })),
+      oracle: {
+        reports: posts.reports,
+        txs: posts.txs,
+        latest: latest.map((r) => ({ symbol: r.symbol as string, round: r.round as number, fairValue: num(r.fair_value as number), lower: num(r.lower as number), upper: num(r.upper as number), computedAt: r.computed_at as number, tx: r.tx_hash as string })),
+      },
+      sundayLoan: read<Record<string, unknown>>("deployments/sunday-loan.json"),
+      agenticWalletTrades: read<unknown[]>("deployments/agentic-wallet-trades.json") ?? [],
+      jobs: has("jobs")
+        ? (this.db.prepare(`SELECT * FROM jobs ORDER BY anchor_time DESC, forecaster`).all() as Record<string, string | number | null>[]).map((j) => ({
+            jobId: j.job_id as string,
+            forecaster: j.forecaster as string,
+            anchorTime: j.anchor_time as number,
+            budget: j.budget as string,
+            status: j.status as string,
+            createTx: j.create_tx as string | null,
+            fundTx: j.fund_tx as string | null,
+            submitTx: j.submit_tx as string | null,
+            verdict: j.verdict as string | null,
+            judgeTx: j.judge_tx as string | null,
+          }))
+        : [],
+      scores: (
+        this.db.prepare(`SELECT anchor_time, forecaster, COUNT(*) n, AVG(crps) c, AVG(abs_err) e, AVG(covered) cov FROM scores GROUP BY anchor_time, forecaster ORDER BY anchor_time DESC, forecaster`).all() as Record<string, number | string>[]
+      ).map((r) => ({ anchorTime: r.anchor_time as number, forecaster: r.forecaster as string, n: r.n as number, crpsBps: num((r.c as number) * 1e4, 2), maeBps: num((r.e as number) * 1e4, 2), coverage: num(r.cov as number, 4) })),
+    };
+  }
+
+  /** Each scored open, per token: the forecaster's last pre-open forecast against the realized open (both per token). */
+  opens(forecaster = "nfv") {
+    const rows = this.db
+      .prepare(
+        `SELECT * FROM (
+           SELECT s.anchor_time, f.symbol, s.ticker, s.realized_open * f.basis AS realized, f.fair_value, f.lower, f.upper, s.hours_to_open, s.crps, s.abs_err, s.covered,
+                  ROW_NUMBER() OVER (PARTITION BY s.anchor_time, s.token ORDER BY s.round DESC) rn
+           FROM scores s JOIN forecasts f ON f.round = s.round AND f.forecaster = s.forecaster AND f.token = s.token
+           WHERE s.forecaster = ?
+         ) WHERE rn = 1 ORDER BY anchor_time DESC, symbol`,
+      )
+      .all(forecaster) as Record<string, number | string>[];
+    return rows.map((r) => ({
+      anchorTime: r.anchor_time as number,
+      symbol: r.symbol as string,
+      ticker: r.ticker as string,
+      realized: num(r.realized as number),
+      fairValue: num(r.fair_value as number),
+      lower: num(r.lower as number),
+      upper: num(r.upper as number),
+      hoursToOpen: num(r.hours_to_open as number, 2),
+      crpsBps: num((r.crps as number) * 1e4, 2),
+      errBps: num((r.abs_err as number) * 1e4, 2),
+      covered: Boolean(r.covered),
+    }));
+  }
+
   scoreboard() {
     return scoreboard(this.db).map((r) => ({ ...r, crps_bps: num(r.crps_bps, 2), mae_bps: num(r.mae_bps, 2), coverage: num(r.coverage, 4) }));
   }
@@ -312,11 +477,12 @@ export class Queries {
   }
 
   study() {
-    const path = "research/out/study-v2.json";
+    // research/out is the backtest's working output (gitignored); research/study-v2.json is the tracked copy deployments ship with.
+    const path = ["research/out/study-v2.json", "research/study-v2.json"].find((p) => existsSync(p));
     const params = "packages/nfv/params/nfv-v2.json";
     return {
       methodology: "Strict leave-one-gap-out over every gap since bStocks listed (2026-06-11). CRPS and MAE in bps of price; coverage of the split-conformal 90% band.",
-      results: existsSync(path) ? JSON.parse(readFileSync(path, "utf8")) : null,
+      results: path ? JSON.parse(readFileSync(path, "utf8")) : null,
       params: existsSync(params) ? JSON.parse(readFileSync(params, "utf8")) : null,
     };
   }

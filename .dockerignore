@@ -12,3 +12,8 @@ research/out
 .git
 .apex
 deploy/railway/railway.env
+apps/web/dist
+apps/web/node_modules
+apps/web/test-results
+apps/web/screens
+apps/web/playwright-report

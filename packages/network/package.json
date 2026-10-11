@@ -5,7 +5,9 @@
   "type": "module",
   "description": "The Night Shift: forecast rounds, Merkle commitments, scoring, consensus and on-chain publication.",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./merkle": "./src/merkle.ts",
+    "./agent-cards": "./src/chain/agent-cards.ts"
   },
   "dependencies": {
     "@bnbagent/sdk": "^0.6.0",

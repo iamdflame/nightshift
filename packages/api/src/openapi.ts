@@ -42,7 +42,36 @@ export const openapi = {
     "/v1/scoreboard": { get: { summary: "Live scoreboard of the forecasters (CRPS, MAE, 90% coverage) by information state", responses: { "200": { description: "Scoreboard" } } } },
     "/v1/results": { get: { summary: "Per-open live results", responses: { "200": { description: "Results" } } } },
     "/v1/study": { get: { summary: "Out-of-sample backtest results and fitted model parameters", responses: { "200": { description: "Study" } } } },
+    "/v1/history/{token}": {
+      get: {
+        summary: "One token's recent history: consensus fair value + band per round, nfv token price and last close, hourly CEX closes, and every forecaster's commit for the next open",
+        parameters: [
+          { name: "token", in: "path", required: true, schema: { type: "string" }, description: "Symbol (NVDAB) or BSC address" },
+          { name: "hours", in: "query", schema: { type: "integer", default: 72, minimum: 1, maximum: 336 } },
+        ],
+        responses: { "200": { description: "History" }, "404": { description: "Unknown token" } },
+      },
+    },
+    "/v1/onchain": { get: { summary: "Everything on BSC mainnet: contracts, oracle feeds, ERC-8004 agents, forecast commitments, oracle posts, the Sunday loan, Agentic Wallet trades, ERC-8183 jobs, scores", responses: { "200": { description: "OnChain" } } } },
+    "/v1/opens": {
+      get: {
+        summary: "Each scored open per token: the forecaster's last pre-open forecast against the realized open",
+        parameters: [{ name: "forecaster", in: "query", schema: { type: "string", enum: ["anchor", "echo", "nfv"], default: "nfv" } }],
+        responses: { "200": { description: "Opens" }, "400": { description: "Unknown forecaster" } },
+      },
+    },
+    "/v1/receipts/{tx}": {
+      get: {
+        summary: "Receipt for any BSC tokenized-stock trade: what it cost per real share vs the fair value at that moment",
+        parameters: [
+          { name: "tx", in: "path", required: true, schema: { type: "string", pattern: "^0x[0-9a-fA-F]{64}$" } },
+          { name: "trader", in: "query", schema: { type: "string" } },
+        ],
+        responses: { "200": { description: "Receipt" }, "400": { description: "Bad hash" }, "422": { description: "No receipt could be built for that transaction (e.g. not a tokenized-stock trade)" } },
+      },
+    },
     "/v1/stream": { get: { summary: "Server-sent events: `round` events with fresh consensus as rounds complete", responses: { "200": { description: "text/event-stream" } } } },
+    "/.well-known/agent-card.json": { get: { summary: "ERC-8004 registration file for the Nightshift network: services (MCP, OpenAPI, web), on-chain agent registrations, skills", responses: { "200": { description: "AgentCard" } } } },
     "/mcp": { post: { summary: "Model Context Protocol endpoint (Streamable HTTP) — tools: fair_value, which, radar, scoreboard, verify_forecast, study", responses: { "200": { description: "MCP" } } } },
   },
 } as const;

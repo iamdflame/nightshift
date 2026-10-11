@@ -1,0 +1,39 @@
+{
+  "steps": {
+    "buy": {
+      "tx": "0xdcdbfbf38d670a309470f425a5577007fe2d394cadfd928e6cd1870567ff7899",
+      "mode": "SWAP",
+      "vendor": "LiquidMesh",
+      "verdict": "bought 30.6 bps above fair value (inside the 90% band)",
+      "receiptHash": "0x15daf6acf457c77a8d9534576989e464878fdaa68a50505df85ac9f266b933c1",
+      "at": "2026-10-11T01:59:52.958Z"
+    },
+    "lend": {
+      "tx": "0x9cbd79dc356c6fd1d69a0207e25f8ce1270fbf566faeb34380b4ad55d811b552",
+      "usdt": "1.5",
+      "at": "2026-10-11T01:59:56.945Z"
+    },
+    "collateral": {
+      "tx": "0x598810e2d6a615097156dad39cdaedba79f9bbfaf6dc86991ee2c56f77186c8f",
+      "nvdab": "0.021688495019914266",
+      "at": "2026-10-11T02:00:00.498Z"
+    },
+    "borrow": {
+      "tx": "0xffabd4d1f2f6768850c175c19b3aa7a89b7c16efb3c71bc21f38521194f91982",
+      "usdt": "0.976123655474072564",
+      "borrowPower": "2.44030913868518141",
+      "at": "2026-10-11T02:00:02.782Z"
+    }
+  },
+  "summary": {
+    "borrower": "0xd8aCAE17c151Fe640EB83593F69ff44678427Ee7",
+    "credit": "0x49c79D9D4c68a6fB8e9A34b828d36B7A38E2762e",
+    "oracleRound": 29861375,
+    "fairValue": "229.84012416",
+    "valuedAt": "225.03259322",
+    "debtUsdt": "0.976123655474072565",
+    "borrowPowerUsdt": "2.44030913868518141",
+    "healthFactor": "3.249999999999999996",
+    "checkedAt": "2026-10-11T02:00:03.088Z"
+  }
+}

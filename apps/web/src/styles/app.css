@@ -1,0 +1,181 @@
+@import "tailwindcss";
+
+/* ───────────────────────── Night Ephemeris tokens ─────────────────────────
+   Sodium (#FFB23F) means exactly one thing everywhere: the bell, the consensus
+   aimed at it, and real on-chain events. Never decoration. */
+@theme {
+  --color-night-0: #0a0f1e;
+  --color-night-1: #0f1628;
+  --color-night-2: #151e35;
+  --color-night-3: #1d2843;
+  --color-moon-0: #f4f1e8;
+  --color-moon-1: #e4e1d6;
+  --color-moon-2: #a9b0c2;
+  --color-moon-3: #7c859d;
+  --color-sodium: #ffb23f;
+  --color-sodium-deep: #e08a10;
+  --color-anchor: #4a8cf0;
+  --color-echo: #097c60;
+  --color-nfv: #d66a98;
+  --color-up: #59d98e;
+  --color-down: #ff7a66;
+  --color-rule: rgb(160 180 220 / 0.12);
+  --color-rule-strong: rgb(160 180 220 / 0.22);
+
+  --font-display: "Newsreader Variable", ui-serif, Georgia, serif;
+  --font-wordmark: "Instrument Serif", "Newsreader Variable", ui-serif, serif;
+  --font-sans: "Instrument Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Martian Mono Variable", ui-monospace, "SF Mono", monospace;
+
+  --ease-out-soft: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-std: cubic-bezier(0.2, 0, 0, 1);
+  --ease-travel: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
+  --radius-control: 6px;
+  --radius-card: 10px;
+
+  --animate-meteor: meteor 1.6s var(--ease-out-soft) forwards;
+  --animate-pulse-ring: pulse-ring 2.4s var(--ease-out-soft) infinite;
+  --animate-shimmer: shimmer 3.2s linear infinite;
+  --animate-border-beam: border-beam calc(var(--duration, 8) * 1s) infinite linear;
+}
+
+@keyframes meteor {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotate(var(--angle, 215deg)); }
+  12% { opacity: 1; }
+  100% { opacity: 0; transform: translate3d(var(--dx, -420px), var(--dy, 260px), 0) rotate(var(--angle, 215deg)); }
+}
+@keyframes pulse-ring {
+  0% { transform: scale(0.9); opacity: 0.7; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes border-beam {
+  100% { offset-distance: 100%; }
+}
+
+:root {
+  color-scheme: dark;
+  --d-press: 120ms;
+  --d-fast: 160ms;
+  --d-base: 220ms;
+  --d-slow: 360ms;
+  --elev-1: inset 0 1px 0 rgb(255 255 255 / 0.03), 0 0 0 1px var(--color-rule);
+  --elev-2: inset 0 1px 0 rgb(255 255 255 / 0.04), 0 0 0 1px var(--color-rule), 0 2px 3px -1px rgb(0 0 0 / 0.5), 0 1px 0 rgb(0 0 0 / 0.3);
+  --elev-3: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 0 0 1px var(--color-rule-strong), 0 4px 8px -2px rgb(0 0 0 / 0.45), 0 16px 40px -8px rgb(0 0 0 / 0.6);
+  --ring-focus: 0 0 0 2px var(--color-night-0), 0 0 0 4px var(--color-sodium);
+}
+
+html {
+  background: var(--color-night-0);
+  color: var(--color-moon-1);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  scrollbar-color: var(--color-night-3) var(--color-night-0);
+}
+body { min-height: 100svh; overflow-x: clip; }
+::selection { background: rgb(255 178 63 / 0.35); color: var(--color-moon-0); }
+
+h1, h2, h3, .display {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-weight: 350;
+  letter-spacing: -0.022em;
+  line-height: 1.05;
+  color: var(--color-moon-0);
+  text-wrap: balance;
+}
+p { text-wrap: pretty; }
+.num, .mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums slashed-zero;
+  font-feature-settings: "tnum" 1, "zero" 1;
+  font-stretch: 87.5%;
+  letter-spacing: -0.01em;
+}
+.wordmark { font-family: var(--font-wordmark); font-weight: 400; letter-spacing: -0.01em; }
+
+:focus-visible { outline: none; box-shadow: var(--ring-focus); border-radius: 6px; }
+[id] { scroll-margin-top: 88px; }
+
+/* Grain: inline SVG noise, so dark gradients never band. */
+.grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.07;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.hairline { box-shadow: inset 0 0 0 1px var(--color-rule); }
+.card { background: var(--color-night-2); border-radius: var(--radius-card); box-shadow: var(--elev-1); border: 1px solid transparent; }
+.card-raised { background: var(--color-night-2); border-radius: var(--radius-card); box-shadow: var(--elev-2); border: 1px solid transparent; }
+
+/* Press feedback on pointer-down; disabled never moves. */
+.pressable { transition: transform var(--d-press) var(--ease-out-soft), background-color var(--d-fast) var(--ease-std), color var(--d-fast) var(--ease-std); }
+.pressable:active:not(:disabled) { transform: scale(0.97); }
+
+@media (hover: hover) and (pointer: fine) {
+  .hover-rise:hover { background: var(--color-night-3); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .glass { backdrop-filter: none !important; background: var(--color-night-2) !important; }
+}
+@media (prefers-contrast: more) {
+  :root { --elev-1: 0 0 0 1px var(--color-rule-strong); }
+}
+@media (forced-colors: active) {
+  .card, .card-raised { border-color: CanvasText; }
+}
+
+/* View transitions between routes: a quick crossfade. */
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: 260ms; animation-timing-function: var(--ease-out-soft); }
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+}
+
+/* Sliding digits: a 0–9 column per digit, moved with transform only. */
+.ns-digit { display: inline-block; height: 1.15em; overflow: hidden; line-height: 1.15; vertical-align: bottom; }
+.ns-digit-col { display: flex; flex-direction: column; transition: transform 450ms var(--ease-out-soft); will-change: transform; }
+.ns-digit-col > span { height: 1.15em; }
+.ns-slide { transition: color 400ms var(--ease-std); }
+.ns-flash-up { color: var(--color-up); }
+.ns-flash-down { color: var(--color-down); }
+
+/* Brand mark: band lines draw in once. */
+.ns-mark-draw .ns-mark-line { stroke-dasharray: 30; stroke-dashoffset: 30; animation: ns-draw 900ms var(--ease-out-soft) 200ms forwards; }
+@keyframes ns-draw { to { stroke-dashoffset: 0; } }
+
+/* Live dot: static amber dot + the word "Live" (no slow 0.2 Hz loop). */
+.ns-live { width: 6px; height: 6px; border-radius: 999px; background: var(--color-sodium); box-shadow: 0 0 0 3px rgb(255 178 63 / 0.18); }
+
+/* The one live card: a slow moonlight beam travelling its border (Magic UI border-beam idea, own CSS). */
+.ns-beam { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; padding: 1px;
+  background: conic-gradient(from var(--beam-angle, 0deg), transparent 0 78%, rgb(244 241 232 / 0.55) 86%, rgb(255 178 63 / 0.9) 90%, transparent 94% 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude;
+  animation: ns-beam-spin 9s linear infinite; }
+@property --beam-angle { syntax: "<angle>"; initial-value: 0deg; inherits: false; }
+@keyframes ns-beam-spin { to { --beam-angle: 360deg; } }
+
+/* Primary CTA shimmer (one per view). */
+.ns-shimmer { background-image: linear-gradient(110deg, var(--color-sodium) 0%, var(--color-sodium) 40%, #ffe1ad 50%, var(--color-sodium) 60%, var(--color-sodium) 100%); background-size: 200% 100%; animation: shimmer 4.5s var(--ease-std) infinite; }
+@media (prefers-reduced-motion: reduce) { .ns-beam, .ns-shimmer { animation: none; } }

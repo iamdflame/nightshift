@@ -11,6 +11,6 @@ const common = { binanceChainId: "56", amount, fromTokenAddress: USDT, toTokenAd
 const q = (await c.trading.quote(common)) as Record<string, string>[] | Record<string, string>;
 const best = (Array.isArray(q) ? (q.find((r) => (r as { isBest?: boolean }).isBest) ?? q[0]) : q)!;
 console.log(`quote: mode ${best.executionMode} vendor ${best.vendorName} out ${best.toTokenAmount}`);
-const s = (await c.trading.swap({ ...common, quoteId: best.quoteId!, slippagePercent: "1" })) as { tx?: { to: string; data: string; value?: string; gas?: string } };
+const s = (await c.trading.swap({ ...common, quoteId: best.quoteId!, slippagePercent: process.argv[5] ?? "1" })) as { tx?: { to: string; data: string; value?: string; gas?: string } };
 const est = await pc.estimateGas({ account: from, to: s.tx!.to as `0x${string}`, data: s.tx!.data as `0x${string}`, value: BigInt(s.tx!.value ?? "0") }).catch((e) => `FAILS: ${(e as Error).message.split("\n")[0]}`);
 console.log(`API gas ${s.tx!.gas} · simulated ${est}`);
