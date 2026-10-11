@@ -10,7 +10,18 @@ for (const r of ["/", "/verify", "/scoreboard", "/proof", "/s/NVDAB"]) {
   await p.waitForTimeout(2500);
   for (let y = 0; y < 30000; y += 800) { await p.mouse.wheel(0, 800); await p.waitForTimeout(120); }
   await p.waitForTimeout(1500);
-  const text = await p.evaluate(() => document.querySelector("main")?.innerText ?? document.body.innerText);
+  // Read it as a screen reader would: aria-hidden parts (decorative digit columns, icons) are left out.
+  const text = await p.evaluate(() => {
+    const main = (document.querySelector("main") ?? document.body).cloneNode(true);
+    for (const el of main.querySelectorAll('[aria-hidden="true"], [aria-hidden=""]')) el.remove();
+    const host = document.createElement("div");
+    host.style.cssText = "position:absolute;left:-99999px;top:0;width:1440px";
+    host.appendChild(main);
+    document.body.appendChild(host);
+    const t = host.innerText;
+    host.remove();
+    return t;
+  });
   parts.push(`## Page ${r}\n\n${text.replace(/\n{3,}/g, "\n\n").slice(0, 7000)}`);
 }
 writeFileSync(out, parts.join("\n\n"));

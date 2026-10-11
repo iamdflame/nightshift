@@ -156,7 +156,8 @@ export default function Scoreboard() {
           </h2>
           <p className="mt-2 max-w-[62ch] text-moon-2">
             NFV's last forecast before the {new Date(lastOpen[0]!.anchorTime).toLocaleDateString("en-US", { weekday: "long", timeZone: "America/New_York" })} open against where each stock actually opened.{" "}
-            {lastOpen.filter((o) => o.covered).length} of {lastOpen.length} opened inside the 90% band.
+            {lastOpen.filter((o) => o.covered).length} of {lastOpen.length} opened inside the 90% band, and {lastOpen.filter((o) => o.realized < o.lower).length} below its lower edge, the side a lender
+            values collateral at.
           </p>
           <div className="mt-6 flex flex-wrap gap-1.5" role="list">
             {lastOpen.map((o) => (
@@ -170,7 +171,11 @@ export default function Scoreboard() {
               </span>
             ))}
           </div>
-          <p className="mt-3 text-[12.5px] text-moon-3">Each chip: absolute miss in bps. Red chips opened outside the band.</p>
+          <p className="mt-3 text-[12.5px] text-moon-3">
+            Each chip: absolute miss in bps. Red chips opened outside the band. Across every scored open so far,{" "}
+            {(opens?.opens ?? []).filter((o) => o.realized < o.lower).length} of {(opens?.opens ?? []).length} stock-opens landed below the lower edge (a calibrated 90% band
+            would put about 5% there).
+          </p>
         </section>
       )}
 
