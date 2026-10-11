@@ -6,7 +6,7 @@ Nightshift is a 24/7 price oracle for tokenized stocks on BNB Chain, run by AI a
 - The official open scores them, and ERC-8183 jobs are built to pay only the ones that beat a stale oracle.
 - Their consensus, a fair value plus a calibrated 90% band, is what lending and trading contracts read at 3 a.m. on a Sunday.
 
-**Live site: [nightshift-production-f4e3.up.railway.app](https://nightshift-production-f4e3.up.railway.app)**. It shows the night sky over Wall Street right now, the 91 bStocks priced for the next open, and every forecast sealed on BNB Chain. You can check any of them from your browser at [/verify](https://nightshift-production-f4e3.up.railway.app/verify).
+**Live site: [nightshift-oracle.vercel.app](https://nightshift-oracle.vercel.app)**. It shows the night sky over Wall Street right now, the 91 bStocks priced for the next open, and every forecast sealed on BNB Chain. You can check any of them from your browser at [/verify](https://nightshift-oracle.vercel.app/verify).
 
 > Built for **BNB Hack: Tokenized Stocks Edition**. **bStocks** are central (all 91 on BSC). **Ondo** and **xStocks** are priced per real share. BSC mainnet.
 
@@ -22,7 +22,7 @@ Nightshift is a 24/7 price oracle for tokenized stocks on BNB Chain, run by AI a
 
 ### Verify it yourself in 3 minutes (no wallet, no signup)
 
-0. Fastest: open **[/verify](https://nightshift-production-f4e3.up.railway.app/verify)** on the live site. Your browser fetches a forecast's Merkle proof, recomputes the leaf and root, and calls `ForecastBook.verifyForecast` on BSC itself.
+0. Fastest: open **[/verify](https://nightshift-oracle.vercel.app/verify)** on the live site. Your browser fetches a forecast's Merkle proof, recomputes the leaf and root, and calls `ForecastBook.verifyForecast` on BSC itself.
 1. Open **[docs/LIVE.md](docs/LIVE.md)** and click any **ForecastBook** commit. Its block time is before the 13:30 UTC open it forecasts.
 2. Ask the API for one forecast and its Merkle proof: `GET /v1/rounds/{round}/proof/nfv/{token}`. Hash the leaf and check it against the root committed in step 1:
    ```
@@ -151,7 +151,7 @@ pnpm exec tsx packages/api/src/server.ts                       # API on :8787
 
 - Reproduce the science: `pnpm exec tsx packages/nfv/src/study-v2.ts`.
 - Regenerate the live proof page: `pnpm exec tsx scripts/live-proof.ts`.
-- Hosting: one Railway service runs everything (`railway.json`, `deploy/railway/`).
+- Hosting: the website is static on Vercel's edge (`apps/web/scripts/vercel-output.mjs`, `pnpm --filter @nightshift/web vercel`), and one Railway service runs the engine, the database and the API (`railway.json`, `deploy/railway/`). Vercel proxies `/v1`, `/x402`, `/mcp` and `/.well-known` to it, so everything answers on one domain.
 
 Tests:
 - `pnpm test`: TypeScript tests (calendar, CRPS closed forms vs numerical integration, provenance segment bounds incl. DST and holidays, Merkle commitments, receipts, oracle posting policy, plus the SDK's 110).

@@ -30,11 +30,11 @@ Nightshift is the missing price layer.
 - **Best Use of BNB Agent Studio:** `agents/NightshiftOracle` (scaffolded with `bag init`, BSC mainnet, A2A + MCP + x402, ERC-8183 + B402 rails) sells deterministic fair-value reports to other agents. Its negotiate flow is verified with a 0.01 U quote. The forecaster network uses `@bnbagent/sdk` (ERC-8004 identities, ERC-8183 pay-for-accuracy jobs, keystores).
 
 **Links:**
-- Website (live): https://nightshift-production-f4e3.up.railway.app
-  - Verify a sealed forecast on BNB Chain from your browser: https://nightshift-production-f4e3.up.railway.app/verify
-  - Every on-chain event with BscScan links: https://nightshift-production-f4e3.up.railway.app/proof
+- Website (live): https://nightshift-oracle.vercel.app
+  - Verify a sealed forecast on BNB Chain from your browser: https://nightshift-oracle.vercel.app/verify
+  - Every on-chain event with BscScan links: https://nightshift-oracle.vercel.app/proof
 - Repo: https://github.com/iamdflame/nightshift
-- Live API: https://nightshift-production-f4e3.up.railway.app/v1 (`/v1/radar`, `/v1/which/NVDA`, `/v1/scoreboard`, `/v1/onchain`, `/openapi.json`, `/mcp`, `/.well-known/agent-card.json`)
+- Live API: https://nightshift-oracle.vercel.app/v1 (`/v1/radar`, `/v1/which/NVDA`, `/v1/scoreboard`, `/v1/onchain`, `/openapi.json`, `/mcp`, `/.well-known/agent-card.json`)
 - Demo video: TODO
 - Contracts on BSC mainnet (deployed at block 126,929,397):
   - ForecastBook: https://bscscan.com/address/0xa04fE9e7F0289c9fC5b00e0eE972Cbd00a203212

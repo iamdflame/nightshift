@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "vercel": "vite build && node scripts/vercel-output.mjs && vercel deploy --prebuilt --prod --yes",
     "preview": "vite preview",
     "assets": "node --import tsx scripts/assets.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"

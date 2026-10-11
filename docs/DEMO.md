@@ -1,6 +1,6 @@
 # Demo video script (target 3:00, limit 4:00)
 
-Recorded on the live site, https://nightshift-production-f4e3.up.railway.app, against real BSC mainnet data. The voice is yours: read the "Say" column in your own words. Captions carry the key numbers for judges who watch muted.
+Recorded on the live site, https://nightshift-oracle.vercel.app, against real BSC mainnet data. The voice is yours: read the "Say" column in your own words. Captions carry the key numbers for judges who watch muted.
 
 **Setup:** Chrome, 1920×1080, zoom 100%, a fresh window with no extensions showing. Turn the sound on in the site header (speaker icon): the bell rings when the dark-weekend clock reaches 09:30. Scroll slowly with the mouse wheel; the chapters are scroll-driven.
 

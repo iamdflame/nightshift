@@ -1,6 +1,6 @@
 // Prod smoke: home hands over from the static hero, story mounts on scroll, Verify proves a real seal on BSC.
 import { chromium } from "playwright";
-const base = process.argv[2] ?? "https://nightshift-production-f4e3.up.railway.app";
+const base = process.argv[2] ?? "https://nightshift-oracle.vercel.app";
 const b = await chromium.launch({ channel: "chrome" });
 const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
 const p = await ctx.newPage();

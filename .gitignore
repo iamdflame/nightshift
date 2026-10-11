@@ -30,3 +30,6 @@ tsconfig.tsbuildinfo
 
 # web QA screenshots
 apps/web/screens/
+
+# Vercel CLI link and prebuilt output
+apps/web/.vercel/

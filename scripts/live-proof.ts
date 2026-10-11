@@ -21,7 +21,7 @@ interface Trade {
   receipt: { tca: { verdict: string }; pricePerToken: number; amountToken: number; amountUsd: number; reference: { fairValue: number; lower: number; upper: number; round: number } | null };
 }
 
-const SITE = "https://nightshift-production-f4e3.up.railway.app";
+const SITE = "https://nightshift-oracle.vercel.app";
 const base = process.argv[2]?.replace(/\/+$/, "");
 const oc: OnChain = base
   ? ((await (await fetch(`${base}/v1/onchain`, { headers: { accept: "application/json" } })).json()) as OnChain)
