@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS consensus (
   computed_at INTEGER NOT NULL, chain_status TEXT NOT NULL DEFAULT 'local', tx_hash TEXT,
   PRIMARY KEY (round, token)
 );
+CREATE INDEX IF NOT EXISTS consensus_token_status ON consensus(token, chain_status, round);
 `;
 
 export function openNetworkDb(path = DEFAULT_DB_PATH): DatabaseSync {

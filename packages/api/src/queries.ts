@@ -119,8 +119,18 @@ export class Queries {
       weights: JSON.parse(c.weights) as Record<string, number>,
       round: c.round,
       computedAt: new Date(c.computed_at).toISOString(),
-      onChain: { status: c.chain_status, tx: c.tx_hash },
+      onChain: { status: c.chain_status, tx: c.tx_hash, latest: this.latestOnChain(c.token) },
     };
+  }
+
+  /** The newest report for this token that is actually on BSC (non-consumed tokens post on deviation/heartbeat). */
+  latestOnChain(token: string) {
+    const p = this.db
+      .prepare(`SELECT round, fair_value, lower, upper, computed_at, tx_hash FROM consensus WHERE token = ? AND chain_status = 'posted' ORDER BY round DESC LIMIT 1`)
+      .get(token) as { round: number; fair_value: number; lower: number; upper: number; computed_at: number; tx_hash: string } | undefined;
+    return p
+      ? { round: p.round, fairValue: num(p.fair_value), lower: num(p.lower), upper: num(p.upper), computedAt: new Date(p.computed_at).toISOString(), tx: p.tx_hash }
+      : null;
   }
 
   /** The dark-hours radar: every stock's on-chain move vs Friday's close, Nightshift's view, and the premium. */
