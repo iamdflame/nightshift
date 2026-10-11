@@ -43,6 +43,10 @@
 - **RWA `price` with many tokens** (Oct 11, 00:33 UTC): `GET /api/v1/dex/market/rwa/price` with 165 `tokenContractAddresses` in the query string returned **HTTP 414 (URI Too Long) with no API envelope**, so our client could only report "HTTP 414 without a recognizable API envelope". The docs state no batch limit; batches of 20 work. Our collector logged this error every 30 s for hours before we noticed.
 - **`referencePrice` on a weekend** (Sat Oct 10 – Sun Oct 11 UTC, 330 readings of 165 bStock and Ondo tokens): `referencePrice` was the token's own `tokenPrice` divided by its shares-per-token ratio in **330 of 330** readings (identical to `tokenPrice` in the 204 where the ratio is 1). With the US market closed, the "reference" is derived from the token itself, not from the underlying stock, and the docs do not say so.
 
+- **Ondo quotes need a wallet even to read a price** (Oct 10 18:28 – Oct 11 00:35 UTC): `GET /api/v1/dex/aggregator/quote` for Ondo tokens without `userWalletAddress` returned `40001 PARAMETER_ERROR — userWalletAddress is required for RFQ (Ondo) quote` **1,260 times**. Whether a token routes through RFQ is only known after quoting, so a price-only caller can't tell in advance that the parameter is mandatory.
+- **`40374 RWA_INSUFFICIENT_LIQUIDITY — Insufficient liquidity for a quote. Please decrease the transaction amount or try again later.`** appeared 6 times on Saturday night (Oct 10 20:26 – 23:26 UTC) in our $100 / $1k / $10k bStock quote ladder.
+- **Telemetry so far** (first 6 h with the key, Oct 10 18:28 – Oct 11 00:40 UTC): 5,042 calls, 2,929 clean; mean latency of a clean call 533 ms. Every call is in the `dx_calls` table (endpoint, HTTP status, API code, latency, retries, request id).
+
 ## 4. Tokenized-stock specifics (measured by Nightshift)
 
 | Topic | Measurement |

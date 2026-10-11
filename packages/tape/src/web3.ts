@@ -8,6 +8,7 @@
  *                         (40367 Ondo / 40369 bStock "invalid trading time")
  * Every call is measured by the SDK's telemetry into `dx_calls` (latency, retries, codes, doc drift).
  */
+import { readFileSync } from "node:fs";
 import { BSC, type Instrument, sessionAt } from "@nightshift/core";
 import { BinanceWeb3Client, BinanceWeb3Error, SqliteTelemetrySink } from "@nightshift/sdk";
 import type { Tape } from "./db.ts";
@@ -15,6 +16,15 @@ import type { Tape } from "./db.ts";
 const USDT = "0x55d398326f99059fF775485246999027B3197955";
 const QUOTE_TICKERS = ["NVDA", "TSLA", "AAPL", "MSFT", "AMZN", "GOOGL", "META", "SPY", "QQQ", "COIN", "MSTR", "CRCL"];
 const SIZES_USD = [100, 1_000, 10_000];
+/** RFQ (Ondo) quotes are refused without a wallet ("40001 userWalletAddress is required for RFQ (Ondo) quote"):
+ *  quote as the trade executor (a public address; nothing is signed). */
+const QUOTE_WALLET = (() => {
+  try {
+    return (JSON.parse(readFileSync("keys/roles.json", "utf8")) as Record<string, string>).executor;
+  } catch {
+    return process.env.NIGHTSHIFT_QUOTE_WALLET;
+  }
+})();
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS rwa_price (
@@ -102,7 +112,7 @@ export class Web3Feeds {
           const to = side === "buy" ? t.address : USDT;
           const base = [Date.now(), t.address, t.symbol, t.ticker, t.issuer, side, usd] as const;
           try {
-            const routes = (await this.client.trading.quote({ binanceChainId: BSC, amount: amount.toString(), fromTokenAddress: from, toTokenAddress: to })) as unknown as Record<string, unknown>[] | Record<string, unknown>;
+            const routes = (await this.client.trading.quote({ binanceChainId: BSC, amount: amount.toString(), fromTokenAddress: from, toTokenAddress: to, userWalletAddress: QUOTE_WALLET })) as unknown as Record<string, unknown>[] | Record<string, unknown>;
             const best = (Array.isArray(routes) ? (routes.find((r) => r.isBest) ?? routes[0]) : routes) as Record<string, string | undefined> | undefined;
             const fromAmt = Number(best?.fromTokenAmount ?? 0) / 1e18;
             const toAmt = Number(best?.toTokenAmount ?? 0) / 1e18;
@@ -110,7 +120,7 @@ export class Web3Feeds {
             ins.run(...base, best?.fromTokenAmount ?? null, best?.toTokenAmount ?? null, best?.executionMode ?? null, best?.priceImpactPercent != null ? Number(best.priceImpactPercent) : null, best?.estimateGasFee ?? null, best?.tradeFee ?? null, best?.vendorName ?? null, perToken, null, null, session);
           } catch (e) {
             const err = e instanceof BinanceWeb3Error ? e : null;
-            ins.run(...base, null, null, null, null, null, null, null, null, err?.kind ?? "error", err ? String((err as unknown as { code?: string | number }).code ?? "") : (e as Error).message.slice(0, 80), session);
+            ins.run(...base, null, null, null, null, null, null, null, null, err?.kind ?? "error", err ? (err.apiCode ?? String(err.httpStatus ?? "")) : (e as Error).message.slice(0, 80), session);
           }
           n++;
         }
