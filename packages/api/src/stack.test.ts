@@ -24,6 +24,8 @@ beforeAll(() => {
   insert.run(NOW - hour, "trading", "/api/v1/dex/aggregator/quote", "GET", 200, "40374", 400, null, "[]");
   insert.run(NOW - 3 * 24 * hour, "trading", "/api/v1/dex/aggregator/swap", "GET", 200, "0", 900, null, "[]");
   insert.run(NOW - hour, "trading", "/api/v1/dex/aggregator/quote", "GET", null, null, 0, "circuit_open", "[]");
+  // RWA from a host Binance won't serve: earlier successes (another machine), now a compliance refusal.
+  insert.run(NOW - 30 * 60_000, "rwa", "/api/v1/rwa/price", "GET", 200, "40304", 300, "compliance", "[]");
   db.close();
   q = new Queries(path);
 });
@@ -36,13 +38,13 @@ afterAll(() => {
 describe("Queries.stack", () => {
   it("counts calls per module and endpoint, 24 h and all time, with latency percentiles", () => {
     const s = q.stack(NOW);
-    expect(s.totalCalls).toBe(12);
-    expect(s.calls24h).toBe(11);
+    expect(s.totalCalls).toBe(13);
+    expect(s.calls24h).toBe(12);
     const rwa = s.modules.find((m) => m.module === "rwa")!;
-    expect(rwa.calls24h).toBe(10);
+    expect(rwa.calls24h).toBe(11);
     const price = rwa.endpoints[0]!;
-    expect(price.p50Ms).toBe(140);
-    expect(price.p95Ms).toBe(190);
+    expect(price.p50Ms).toBe(150);
+    expect(price.p95Ms).toBe(300);
     expect(price.drift.undocumented).toEqual(["referencePrice"]);
   });
 
@@ -54,6 +56,15 @@ describe("Queries.stack", () => {
     const quote = trading.endpoints.find((e) => e.endpoint.endsWith("/quote"))!;
     expect(quote).toMatchObject({ callsAll: 1, notSent: 1 });
     expect(s.notSent.total).toBe(1);
+  });
+
+  it("marks a module refused when every endpoint's latest answer is a compliance code, whatever came before", () => {
+    const s = q.stack(NOW);
+    const rwa = s.modules.find((m) => m.module === "rwa")!;
+    expect(rwa).toMatchObject({ refusedWith: "40304" });
+    expect(rwa.endpoints[0]).toMatchObject({ lastCode: "40304", codes: { "0": 10, "40304": 1 } });
+    expect(s.modules.find((m) => m.module === "trading")!.refusedWith).toBeNull();
+    expect(s.codes.find((c) => c.code === "40304")!.ourHandling).toMatch(/never routed around/i);
   });
 
   it("explains every outcome code from the evidence or the SDK catalog", () => {

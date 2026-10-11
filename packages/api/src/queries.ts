@@ -8,7 +8,7 @@ import { BSC, hoursToOpen, lastRegularClose, nextRegularOpen, sessionAt } from "
 import { MerkleTree, scoreboard } from "@nightshift/network";
 import { ENDPOINTS } from "@nightshift/sdk";
 import { DEFAULT_DB_PATH } from "@nightshift/tape";
-import { noteFor, OK_CODES } from "./stack.ts";
+import { COMPLIANCE, noteFor, OK_CODES } from "./stack.ts";
 
 export interface ConsensusRow {
   round: number;
@@ -488,6 +488,15 @@ export class Queries {
        GROUP BY module, endpoint, method`;
     type Lat = Row & { p50: number; p95: number };
     const recent = all<Lat>(latencySql("ts >= ?"), day);
+    // What Binance answered most recently, per endpoint: a module whose every endpoint now gets a compliance code is
+    // refused to this host, whatever its earlier traffic says.
+    const latest = all<Row & { code: string }>(
+      `SELECT module, endpoint, method, code FROM (
+         SELECT module, endpoint, method, COALESCE(api_code, 'HTTP ' || http_status, error_kind, 'unknown') code,
+                ROW_NUMBER() OVER (PARTITION BY module, endpoint, method ORDER BY ts DESC, id DESC) rn
+         FROM dx_calls WHERE COALESCE(error_kind, '') <> '${NOT_SENT}')
+       WHERE rn = 1`,
+    );
     const drift = all<Row & { u: string; m: string }>(
       `SELECT module, endpoint, method, undocumented_fields u, missing_fields m FROM dx_calls
        WHERE undocumented_fields <> '[]' OR missing_fields <> '[]' GROUP BY 1, 2, 3, 4, 5`,
@@ -504,12 +513,13 @@ export class Queries {
       p95Ms: number | null;
       latencyWindow: "24h" | "all" | null;
       lastAt: number | null;
+      lastCode: string | null;
       codes: Record<string, number>;
       drift: { undocumented: string[]; missing: string[] };
     }
     const eps = new Map<string, Ep & { module: string }>();
     for (const o of outcomes) {
-      const e = eps.get(key(o)) ?? { module: o.module, endpoint: o.endpoint, method: o.method, calls24h: 0, callsAll: 0, notSent: 0, p50Ms: null, p95Ms: null, latencyWindow: null, lastAt: null, codes: {}, drift: { undocumented: [], missing: [] } };
+      const e = eps.get(key(o)) ?? { module: o.module, endpoint: o.endpoint, method: o.method, calls24h: 0, callsAll: 0, notSent: 0, p50Ms: null, p95Ms: null, latencyWindow: null, lastAt: null, lastCode: null, codes: {}, drift: { undocumented: [], missing: [] } };
       eps.set(key(o), e);
       if (o.code === NOT_SENT) {
         e.notSent += o.n;
@@ -531,6 +541,10 @@ export class Queries {
     for (const e of eps.values()) {
       if (e.calls24h === 0 && e.callsAll > 0) setLatency(all<Lat>(latencySql("module = ? AND endpoint = ? AND method = ?"), e.module, e.endpoint, e.method), "all");
     }
+    for (const l of latest) {
+      const e = eps.get(key(l));
+      if (e) e.lastCode = l.code;
+    }
     for (const d of drift) {
       const e = eps.get(key(d));
       if (!e) continue;
@@ -544,8 +558,10 @@ export class Queries {
     const modules = names.map((module) => {
       const endpoints = [...eps.values()].filter((e) => e.module === module).sort((a, b) => b.callsAll - a.callsAll || a.endpoint.localeCompare(b.endpoint));
       const lastAt = Math.max(0, ...endpoints.map((e) => e.lastAt ?? 0));
+      const refusedWith = endpoints.length > 0 && endpoints.every((e) => e.lastCode != null && COMPLIANCE.test(e.lastCode)) ? endpoints[0]!.lastCode : null;
       return {
         module,
+        refusedWith,
         calls24h: endpoints.reduce((s, e) => s + e.calls24h, 0),
         callsAll: endpoints.reduce((s, e) => s + e.callsAll, 0),
         lastAt: lastAt || null,

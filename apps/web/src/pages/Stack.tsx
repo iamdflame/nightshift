@@ -11,12 +11,14 @@ const SITE = "https://nightshift-oracle.vercel.app";
 const NVDAB_FEED = "0x0098192690f14749Ec81f636dc0a01f4893463E2";
 
 /** What each Binance Web3 API module does for Nightshift, and the use nobody would expect. Telemetry decides "live". */
-const MODULES: { key: string; name: string; use: string; unexpected: string }[] = [
+const MODULES: { key: string; name: string; use: string; unexpected: string; refused?: string }[] = [
   {
     key: "rwa",
     name: "RWA Data",
-    use: "Prices for all 91 bStocks, and each stock's underlying market: session status, reference price, share ratio, corporate actions.",
-    unexpected: "The market-status and corporate-action fields become flags inside every oracle report, so a contract can refuse a price during a split.",
+    use: "Token prices for every bStock, and each stock's underlying market: session status, reference price, share ratio.",
+    unexpected: "Sizes the sell side of the quote ladder. The oracle itself prices from Binance spot books and BSC pools.",
+    refused:
+      "Binance doesn't serve these endpoints to our production server (Railway, EU West): it answers 40304, compliance restriction. The same keys work from our development machine, which made the successful calls counted here. We don't route around it: the poller asks again every 30 minutes, and the oracle prices from Binance spot books and BSC pools.",
   },
   {
     key: "trading",
@@ -41,9 +43,14 @@ const MODULES: { key: string; name: string; use: string; unexpected: string }[] 
   { key: "defi", name: "DeFi", use: "Protocol positions: typed and tested in our SDK.", unexpected: "Not called by the running engine." },
 ];
 
-function Status({ calls24h, callsAll }: { calls24h: number; callsAll: number }) {
-  const [label, cls] =
-    calls24h > 0 ? ["In production now", "bg-up/15 text-up"] : callsAll > 0 ? ["Called in production", "bg-night-3 text-moon-1"] : ["Covered by our SDK", "bg-night-3 text-moon-2"];
+function Status({ calls24h, callsAll, refusedWith }: { calls24h: number; callsAll: number; refusedWith: string | null }) {
+  const [label, cls] = refusedWith
+    ? [`Refused to our server (${refusedWith})`, "bg-down/15 text-down"]
+    : calls24h > 0
+      ? ["In production now", "bg-up/15 text-up"]
+      : callsAll > 0
+        ? ["Called in production", "bg-night-3 text-moon-1"]
+        : ["Covered by our SDK", "bg-night-3 text-moon-2"];
   return <span className={`whitespace-nowrap rounded-md px-2 py-0.5 text-[12px] font-medium ${cls}`}>{label}</span>;
 }
 
@@ -118,10 +125,10 @@ function ModuleCard({ m, data }: { m: (typeof MODULES)[number]; data: StackData[
     <article className="card p-5">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <h3 className="font-sans text-[17px] font-medium tracking-normal text-moon-0">{m.name}</h3>
-        <Status calls24h={calls24h} callsAll={callsAll} />
+        <Status calls24h={calls24h} callsAll={callsAll} refusedWith={data?.refusedWith ?? null} />
       </div>
       <p className="mt-2 text-[14px] text-moon-1">{m.use}</p>
-      <p className="mt-2 text-[13.5px] text-moon-2">{m.unexpected}</p>
+      <p className="mt-2 text-[13.5px] text-moon-2">{data?.refusedWith && m.refused ? m.refused : m.unexpected}</p>
       {data && data.endpoints.length > 0 ? (
         <div className="mt-4 overflow-x-auto" tabIndex={0} role="region" aria-label={`${m.name} endpoints, scrolls sideways`}>
           <table className="w-full min-w-[520px] whitespace-nowrap text-[12.5px]">
@@ -167,19 +174,21 @@ export default function Stack() {
   const trade = oc?.agenticWalletTrades[0];
   const byKey = new Map(s?.modules.map((m) => [m.module, m]));
   const live = MODULES.filter((m) => (byKey.get(m.key)?.callsAll ?? 0) > 0).length;
+  const calledEndpoints = s?.modules.reduce((n, m) => n + m.endpoints.filter((e) => e.callsAll > 0).length, 0) ?? 0;
 
   return (
     <div className="mx-auto max-w-[1320px] px-4 pb-24 pt-28 sm:px-6">
       <title>Built on Binance Web3 · Nightshift</title>
       <header className="max-w-[56rem]">
         <p className="text-[14px] font-medium text-sodium/90">Built on Binance Web3</p>
-        <h1 className="mt-3 text-[clamp(2.4rem,5vw,4.2rem)] font-[300]">Every price here starts as a Binance Web3 API call.</h1>
+        <h1 className="mt-3 text-[clamp(2.4rem,5vw,4.2rem)] font-[300]">Every Binance Web3 API call we make, and every answer.</h1>
         <p className="mt-4 max-w-[64ch] text-[17px] text-moon-2">
           {s ? (
             <>
               <span className="num text-moon-0">{s.calls24h.toLocaleString("en-US")}</span> calls in the last 24 hours,{" "}
-              <span className="num text-moon-0">{s.totalCalls.toLocaleString("en-US")}</span> since {s.since ? et(s.since) : "–"}, logged by our own SDK as they happen. It types all{" "}
-              {s.sdk.endpoints} endpoints of the {s.sdk.modules} modules; the running oracle uses {live} of them, marked below with their real traffic.
+              <span className="num text-moon-0">{s.totalCalls.toLocaleString("en-US")}</span> since {s.since ? et(s.since) : "–"} (our development machine first, then production), logged by our own SDK as they
+              happen. It types all {s.sdk.endpoints} endpoints of the {s.sdk.modules} modules; the running oracle calls {calledEndpoints} endpoints in {live} modules, marked below with their real traffic. Its prices
+              come from Binance spot books and BSC pools; the API gives it executable quotes, broadcasts and payments.
             </>
           ) : isError ? (
             "The live telemetry couldn't load."

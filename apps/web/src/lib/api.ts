@@ -251,6 +251,8 @@ export interface StackEndpoint {
   p95Ms: number | null;
   latencyWindow: "24h" | "all" | null;
   lastAt: number | null;
+  /** What Binance answered most recently. */
+  lastCode: string | null;
   codes: Record<string, number>;
   drift: { undocumented: string[]; missing: string[] };
 }
@@ -261,7 +263,7 @@ export interface Stack {
   calls24h: number;
   notSent: { total: number; last24h: number };
   sdk: { modules: number; endpoints: number };
-  modules: { module: string; calls24h: number; callsAll: number; lastAt: number | null; sdkEndpoints: { method: string; path: string }[]; endpoints: StackEndpoint[] }[];
+  modules: { module: string; /** Every endpoint's latest answer is this compliance code. */ refusedWith: string | null; calls24h: number; callsAll: number; lastAt: number | null; sdkEndpoints: { method: string; path: string }[]; endpoints: StackEndpoint[] }[];
   codes: { code: string; name: string | null; ok: boolean; sent: boolean; count: number; count24h: number; firstAt: number; lastAt: number; modules: string[]; meaning: string; ourHandling: string }[];
 }
 

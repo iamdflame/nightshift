@@ -51,6 +51,8 @@ export function web3Enabled(): boolean {
 
 export class Web3Feeds {
   readonly client: BinanceWeb3Client;
+  /** Binance answered an RWA call with a compliance code (40304 from our EU West host): poll every 30 min, not every 30 s. */
+  rwaRefused = false;
 
   constructor(private readonly tape: Tape) {
     tape.db.exec(SCHEMA);
@@ -62,10 +64,16 @@ export class Web3Feeds {
     // The addresses travel in the query string: ~165 of them returned HTTP 414 (URI Too Long) with no
     // API envelope, and the docs state no batch limit. 20 per call keeps every URL under ~1 KB.
     const rows: unknown[] = [];
-    for (let i = 0; i < tokens.length; i += 20) {
-      const chunk = tokens.slice(i, i + 20).map((t) => t.address);
-      rows.push(...((await this.client.rwa.price({ binanceChainId: BSC, tokenContractAddresses: chunk })) as unknown[]));
+    try {
+      for (let i = 0; i < tokens.length; i += 20) {
+        const chunk = tokens.slice(i, i + 20).map((t) => t.address);
+        rows.push(...((await this.client.rwa.price({ binanceChainId: BSC, tokenContractAddresses: chunk })) as unknown[]));
+      }
+    } catch (e) {
+      if (!this.refusal(e, "web3.rwa-price")) throw e;
+      return 0;
     }
+    this.rwaRefused = false;
     const ins = this.tape.db.prepare(`INSERT INTO rwa_price VALUES (?,?,?,?,?,?)`);
     const now = Date.now();
     this.tape.tx(() => {
@@ -89,11 +97,25 @@ export class Web3Feeds {
         const s = m.statusInfo ?? {};
         ins.run(Date.now(), t.address, s.openState == null ? null : s.openState ? 1 : 0, s.marketStatus ?? null, s.reasonCode ?? null, s.reason ?? null, s.nextOpenTime ?? null, s.nextCloseTime ?? null, Number(m.marketData?.referencePrice ?? Number.NaN), session);
         n++;
+        this.rwaRefused = false;
       } catch (e) {
+        // A compliance refusal answers for every token from this host: stop here instead of asking 21 more times.
+        if (this.refusal(e, "web3.market")) break;
         this.tape.log("warn", "web3.market", `${t.symbol}: ${(e as Error).message.slice(0, 160)}`);
       }
     }
     return n;
+  }
+
+  /**
+   * A compliance code (403xx) is Binance declining to serve this host's jurisdiction, not an outage: never retried,
+   * never routed around. The oracle prices from Binance spot books and BSC pools meanwhile.
+   */
+  private refusal(e: unknown, scope: string): boolean {
+    if (!(e instanceof BinanceWeb3Error) || e.kind !== "compliance") return false;
+    if (!this.rwaRefused) this.tape.log("warn", scope, `refused: ${e.apiCode} ${e.codeName ?? ""}; asking again every 30 min`);
+    this.rwaRefused = true;
+    return true;
   }
 
   /** Executable price ladder: buy (USDT→token) and sell (token→USDT) at each size, per issuer token. */

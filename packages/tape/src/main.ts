@@ -144,16 +144,23 @@ async function main(): Promise<void> {
   if (web3Enabled()) {
     const w3 = new Web3Feeds(tape);
     const covered = () => registry.filter((i) => i.chainId === BSC && (i.issuer === "bstocks" || (i.issuer === "ondo" && bstocks().some((b) => b.ticker === i.ticker))));
-    every("web3.rwa-price", 30_000, async () => {
-      tape.log("info", "web3.rwa-price", `${await w3.rwaPrices(covered())} prices`);
+    // Binance refuses the RWA endpoints to some jurisdictions (40304 from our EU West host): back off to 30 min then.
+    every("web3.rwa-price", () => (w3.rwaRefused ? 30 * 60_000 : 30_000), async () => {
+      const n = await w3.rwaPrices(covered());
+      if (!w3.rwaRefused) tape.log("info", "web3.rwa-price", `${n} prices`);
     });
-    every("web3.market", 5 * 60_000, async () => {
+    every("web3.market", () => (w3.rwaRefused ? 30 * 60_000 : 5 * 60_000), async () => {
       tape.log("info", "web3.market", `${await w3.marketStatus(bstocks().filter((i) => DEPTH_TICKERS.includes(i.ticker)))} statuses`);
     });
     every("web3.quotes", 10 * 60_000, async () => {
+      // Sizes the sell side: the deepest BSC pool's price, overridden by Binance's RWA price wherever it's served to us.
       const mids = new Map<string, number>();
-      for (const r of tape.db.prepare(`SELECT token, token_price FROM rwa_price WHERE ts > ? ORDER BY ts`).all(Date.now() - 10 * 60_000) as { token: string; token_price: number }[]) mids.set(r.token, r.token_price);
-      tape.log("info", "web3.quotes", `${await w3.quoteLadder(registry, (t) => mids.get(t) ?? null)} quotes`);
+      for (const r of tape.db
+        .prepare(`SELECT lower(base_address) token, price_usd FROM pool_snapshot WHERE ts > ? AND price_usd > 0 ORDER BY liquidity_usd`)
+        .all(Date.now() - 30 * 60_000) as { token: string; price_usd: number }[])
+        mids.set(r.token, r.price_usd);
+      for (const r of tape.db.prepare(`SELECT token, token_price FROM rwa_price WHERE ts > ? AND token_price > 0 ORDER BY ts`).all(Date.now() - 10 * 60_000) as { token: string; token_price: number }[]) mids.set(r.token, r.token_price);
+      tape.log("info", "web3.quotes", `${await w3.quoteLadder(registry, (t) => mids.get(t.toLowerCase()) ?? null)} quotes`);
     });
   } else tape.log("info", "collector", "official Binance Web3 API feeds off (set BINANCE_WEB3_API_KEY / BINANCE_WEB3_SECRET_KEY in .env)");
   every("daily-refs", 20 * 60_000, collectDailyRefs);

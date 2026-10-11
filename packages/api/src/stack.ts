@@ -16,6 +16,8 @@ export interface CodeNote {
 
 /** Envelope success codes: OCResult uses 0, the B402 facilitator "000000000". */
 export const OK_CODES = new Set(["0", "000000000"]);
+/** Compliance codes (403xx: region, VPN, IP, restriction): Binance declining to serve the caller's jurisdiction. */
+export const COMPLIANCE = /^403\d\d$/;
 
 const RATE_LIMIT: CodeNote = {
   meaning: "Rate limited.",
@@ -66,6 +68,12 @@ export const CODE_NOTES: Record<string, CodeNote> = {
   "HTTP 429": RATE_LIMIT,
   "50000": SERVER,
   "50001": SERVER,
+  "40304": {
+    meaning:
+      "Compliance restriction: Binance doesn't serve the RWA endpoints to our production host (Railway, EU West). The same keys get prices from our development machine; the docs don't list where RWA Data is available.",
+    ourHandling:
+      "Never retried and never routed around. The RWA pollers back off to one try every 30 minutes, the quote ladder sizes its sells from BSC pool prices, and the oracle prices from Binance spot books and pools.",
+  },
   "HTTP 414": {
     meaning: "URI Too Long, with no API envelope: 165 token addresses in one RWA price query string. The docs state no batch limit.",
     ourHandling: "RWA price requests now carry 20 addresses each, which keeps every URL under about 1 KB.",
