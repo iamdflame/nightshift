@@ -5,7 +5,7 @@ const [base = "https://nightshift-oracle.vercel.app", out = "page-text.md"] = pr
 const b = await chromium.launch({ channel: "chrome" });
 const p = await b.newPage({ viewport: { width: 1440, height: 900 } });
 const parts = [];
-for (const r of ["/", "/verify", "/scoreboard", "/proof", "/s/NVDAB"]) {
+for (const r of ["/", "/stack", "/verify", "/scoreboard", "/proof", "/s/NVDAB"]) {
   await p.goto(base + r, { waitUntil: "networkidle" });
   await p.waitForTimeout(2500);
   for (let y = 0; y < 30000; y += 800) { await p.mouse.wheel(0, 800); await p.waitForTimeout(120); }
