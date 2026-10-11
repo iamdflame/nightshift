@@ -4,30 +4,26 @@
 
 **Project:** Nightshift
 
-**One-liner:** The price of a stock when Wall Street is asleep. AI forecasting agents price tokenized stocks 24/7 on BNB Chain, prove every forecast on-chain before the market opens, and get paid only when reality says they were right.
+**One-liner:** Every price on BNB Chain tells you what a tokenized stock trades at right now. Nightshift tells a lender where it will open and how far it can gap: three forecasters seal a fair value and a 90% band for every bStock's next US open on BNB Chain before the bell, the official open scores them, and contracts read their consensus.
 
 **Description (≈200 words):**
-Tokenized stocks trade around the clock, but the stock market behind them sets a reliable price only 19% of the week. For 48 hours every weekend there is no reference price at all. Oracles go stale, lenders keep borrow caps at zero, LPs get picked off at every reopen, and even Binance's own agent wallet asks users *which* NVIDIA token to buy.
+Tokenized stocks trade 24/7; the US regular session is 32.5 of the week's 168 hours. When it closes, the reference goes quiet (Chainlink's equity feeds "do not publish updates … while markets are closed"), and lenders price bStocks from the token's own thin weekend trading. Venus values about 1,490 NVDAB of collateral that way right now. Across every fully dark weekend since June, that price called Monday's open barely better than Friday's close (166.7 vs 169.1 bps CRPS), with no error bar.
 
-Nightshift is the missing price layer.
-- **The model.** NFV, our information-provenance model, is backtested out-of-sample on every gap since bStocks listed: −22% forecast error vs a stale oracle, −44% at the Sunday-night restart, with calibrated 90% bands. Live, scored against the official open, it cut forecast error (CRPS) by 49% on Oct 8 and 31% on Oct 9.
-- **The agents.** A network of forecasters with ERC-8004 identities commits Merkle roots of every forecast to `ForecastBook` every 30 minutes before the bell, and is scored by the official open. Anyone can verify a sealed forecast in the browser, no wallet. Pay-for-accuracy runs on ERC-8183 jobs on BNB's own commerce contracts, paying a forecaster only when it beats the stale oracle; the jobs are wired end to end and the first open once the escrow is funded.
-- **What it powers.** The consensus feeds `NightshiftOracle` and with it:
-  - a **Wallet Skill** that answers "which NVIDIA?" and never overpays;
-  - **receipts** that prove any trade's cost per real share;
-  - a **credit vault** that lends against bStocks on a Sunday;
-  - a **PancakeSwap Infinity hook** that cut LP reopen losses 71% on a mainnet fork;
-  - a **Venus risk report** showing the blocker to stock-backed borrowing is the oracle, not solvency.
+Nightshift publishes what a lender needs instead: a fair value and a calibrated 90% band for the next open, around the clock, for all 91 bStocks.
+- **Forecasters with skin in the game.** Three ERC-8004 agents (Friday's close held to the bell, the token's live price, and our NFV model) seal Merkle roots of every forecast in `ForecastBook` every 30 minutes before the bell. The open scores them; ERC-8183 jobs on BNB's commerce contracts pay a forecaster only if it beat the no-skill baseline. Anyone can verify a sealed forecast from the browser, no wallet.
+- **Honest numbers.** Backtest: −22% error vs Friday's close, −1% vs the token's price; the model's edge is the band (87–90% coverage).
+- **Read by contracts.** `NightshiftOracle`, six Chainlink-compatible feeds and a Venus `OracleInterface` adapter, live on mainnet. Our credit vault lent against NVDAB at 10 p.m. on a Saturday, valuing it at the band's lower edge. The site asks Venus and Nightshift the same `getPrice(NVDAB)` and shows both answers.
+- **For agents.** A Wallet Skill (which NVIDIA, inside the band), receipts per real share, an MCP server and x402 pay-per-query.
 
 **Tokenized stocks used:**
-- **bStocks (central):** all 91 on BSC are priced 24/7, with Binance spot books and BSC pools as signals.
-- **Ondo and xStocks:** compared per real share in `/v1/which`.
+- **bStocks (central):** all 91 on BSC, priced 24/7 from Binance Web3 RWA Data and Trading quotes, Binance spot books and BSC pools.
+- **Ondo:** compared per real share in `/v1/which` (xStocks are mapped where the registry lists them).
 
-**Binance Web3 API modules:** RWA Data, Market, Trading (quote, approve, swap, RFQ), Transaction (broadcast with MEV protection), Wallet, DeFi, b402. The client covers all 65 endpoints, and its telemetry logs every call for the DER.
+**Binance Web3 API:** RWA Data (prices, underlying market, share ratios, corporate actions), Trading (a $100/$1k/$10k quote ladder on every token, approvals, swaps, RFQ), Transaction (MEV-protected broadcast) and b402 run in production; their live call counts, latencies and every outcome code are on [/stack](https://nightshift-oracle.vercel.app/stack). Our SDK types all 65 endpoints across the 7 modules.
 
 **Special prizes:**
-- **Best Use of Agentic Wallet / Wallet Skills:** `skills/nightshift/SKILL.md` drives `baw` market orders inside the fair-value band, limit orders at fair value outside it, and `x402-payment` for premium data. Receipts verify every fill.
-- **Best Use of BNB Agent Studio:** `agents/NightshiftOracle` (scaffolded with `bag init`, BSC mainnet, A2A + MCP + x402, ERC-8183 + B402 rails) sells deterministic fair-value reports to other agents. Its negotiate flow is verified with a 0.01 U quote. The forecaster network uses `@bnbagent/sdk` (ERC-8004 identities, ERC-8183 pay-for-accuracy jobs, keystores).
+- **Best Use of Agentic Wallet / Wallet Skills:** `skills/nightshift/SKILL.md` drives `baw` market orders inside the fair-value band and limit orders at fair value outside it, and pays for premium data over x402. A real Agentic Wallet buy of NVDAB is on-chain with its receipt (34.7 bps above fair value, inside the band).
+- **Best Use of BNB Agent Studio:** five ERC-8004 identities (#370890–370894) for the Scorer, three forecasters and the trade agent, an autonomous runtime that has sealed every round since Oct 9, ERC-8183 pay-for-accuracy jobs, and `agents/NightshiftOracle` (scaffolded with `bag init`; A2A + MCP + x402) selling fair-value reports to other agents.
 
 **Links:**
 - Website (live): https://nightshift-oracle.vercel.app
