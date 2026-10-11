@@ -179,8 +179,8 @@ export function Hero() {
             transition={{ duration: 0.9, ease: ease.out, delay: 0.5 }}
             className="mt-7 max-w-[52ch] text-[17px] leading-relaxed text-moon-2 sm:text-[18px]"
           >
-            Nightshift is a 24/7 price oracle for tokenized stocks on BNB Chain. AI agents seal their forecast of every stock's next open on-chain before the bell, reality scores them,
-            and contracts read their consensus at 3 a.m. on a Sunday.
+            Every price on BNB Chain tells you what a tokenized stock trades at right now. Nightshift tells you where it will open, and how far it can gap: forecasters seal a fair
+            value and a 90% band for every bStock before the bell, the official open scores them, and contracts read the consensus.
           </motion.p>
           <motion.div initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, delay: 1.2 }} className="mt-9 flex flex-wrap items-center gap-3">
             <a href="#story" className="pressable ns-shimmer inline-flex items-center gap-2 rounded-md bg-sodium px-5 py-3 font-medium text-night-0">

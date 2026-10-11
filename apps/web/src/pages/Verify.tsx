@@ -250,7 +250,7 @@ export default function Verify() {
     <div className="mx-auto max-w-[1320px] px-4 pb-24 pt-28 sm:px-6">
       <title>Verify a forecast · Nightshift</title>
       <header className="max-w-[48rem]">
-        <p className="text-[14px] font-medium text-sodium/90">No wallet. No trust in us.</p>
+        <p className="text-[14px] font-medium text-sodium/90">No wallet. Check it yourself.</p>
         <h1 className="mt-3 text-[clamp(2.6rem,5vw,4.6rem)] font-[300]">Verify a forecast on BNB Chain.</h1>
         <p className="mt-5 max-w-[60ch] text-[17px] text-moon-2">
           Your browser recomputes the forecast's hash, walks its Merkle proof and asks the ForecastBook contract directly, over a public BNB Chain RPC, whether it was sealed before the bell.

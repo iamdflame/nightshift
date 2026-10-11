@@ -96,7 +96,7 @@ export default function Proof() {
       <title>On-chain proof · Nightshift</title>
       <header className="max-w-[52rem]">
         <p className="text-[14px] font-medium text-sodium/90">On-chain proof</p>
-        <h1 className="mt-3 text-[clamp(2.6rem,5vw,4.4rem)] font-[300]">Everything we claim is on BNB Chain.</h1>
+        <h1 className="mt-3 text-[clamp(2.6rem,5vw,4.4rem)] font-[300]">Everything that's live is on BNB Chain.</h1>
         <p className="mt-4 max-w-[60ch] text-[17px] text-moon-2">An observatory log of every contract, identity, forecast seal, oracle report and trade. Each line links to BscScan; nothing here needs a wallet.</p>
       </header>
 
